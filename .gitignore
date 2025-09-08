@@ -1,7 +1,40 @@
+# Python virtual environments
 .venv/
+venv/
+
+# Python cache files
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
+
+# SQLite database
 db.sqlite3
+
+# Environment variables
 .env
 .env.*
+.env.local
+
+# Node modules and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python test and type caches
+.pytest_cache/
+.mypy_cache/
+
+# IDE and system files
+.idea/
+.vscode/
+.DS_Store
+
+# Egg/ build
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Static files (Django collectstatic)
 staticfiles/
