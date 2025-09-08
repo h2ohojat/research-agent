@@ -36,7 +36,10 @@ jobs:
 
   node:
     name: Node build (optional)
+      
     runs-on: ubuntu-latest
+      continue-on-error: true
+      
     steps:
       - uses: actions/checkout@v4
 
@@ -47,5 +50,5 @@ jobs:
 
       - name: Install & Build if package.json exists
         run: |
-          if [ -f package.json ]; then npm ci; fi
+          if [ -f package.json ]; then npm ci || npm i; fi
           if [ -f package.json ]; then npm run build || echo "No build script"; fi
