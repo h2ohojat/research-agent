@@ -1,0 +1,11 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["venv", ".venv", "node_modules", "migrations", "dist", "build"]
+select = ["E", "F", "I"]   # قواعد پایه + import sorting
+ignore = ["E501", "F403", "F405", "I001", "I002"]   # اگر طول خطوط زیاده، فعلاً چشمپوشی
+
+
+##iignore = ["E501", "F403", "F405", "I001", "I002"]   # اگر طول خطوط قدیمی زیاده، فعلاً چشم‌پوش
+
+addopts = "-q"

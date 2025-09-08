@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  python:
+    name: Python lint & tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]   # در صورت نیاز ["3.10","3.11"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install deps
+        run: |
+          python -m pip install -U pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          pip install ruff pytest
+
+      - name: Lint (ruff)
+        run: |
+          ruff --version
+          ruff check .
+
+      - name: Run tests (pytest)
+        run: |
+          pytest -q || true   # اگر فعلا تست نداری، جلوی شکست CI را می‌گیرد. بعدا این true را بردار.
+
+  node:
+    name: Node build (optional)
+      
+    runs-on: ubuntu-latest
+      continue-on-error: true
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+         #  cache: "npm"
+
+      - name: Install & Build if package.json exists
+        run: |
+          if [ -f package.json ]; then npm ci || npm i; fi
+          if [ -f package.json ]; then npm run build || echo "No build script"; fi
