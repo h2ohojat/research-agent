@@ -2,12 +2,10 @@
 line-length = 100
 target-version = "py311"
 exclude = ["venv", ".venv", "node_modules", "migrations", "dist", "build"]
-
-[tool.ruff.lint]
 select = ["E", "F", "I"]   # قواعد پایه + import sorting
-iignore = ["E501", "F403", "F405", "I001", "I002"]   # اگر طول خطوط قدیمی زیاده، فعلاً چشم‌پوشی
+ignore = ["E501", "F403", "F405", "I001", "I002"]   # اگر طول خطوط زیاده، فعلاً چشمپوشی
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
+
+##iignore = ["E501", "F403", "F405", "I001", "I002"]   # اگر طول خطوط قدیمی زیاده، فعلاً چشم‌پوش
+
 addopts = "-q"
