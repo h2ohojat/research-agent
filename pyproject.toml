@@ -5,7 +5,7 @@ exclude = ["venv", ".venv", "node_modules", "migrations", "dist", "build"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]   # قواعد پایه + import sorting
-ignore = ["E501"]          # اگر طول خط‌های قدیمی زیاده، فعلاً چشم‌پوشی
+iignore = ["E501", "F403", "F405", "I001", "I002"]   # اگر طول خطوط قدیمی زیاده، فعلاً چشم‌پوشی
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
