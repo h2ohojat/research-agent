@@ -1,0 +1,13 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["venv", ".venv", "node_modules", "migrations", "dist", "build"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]   # قواعد پایه + import sorting
+ignore = ["E501"]          # اگر طول خط‌های قدیمی زیاده، فعلاً چشم‌پوشی
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+addopts = "-q"
