@@ -1,0 +1,12 @@
+django>=5.0,<6.0
+djangorestframework
+channels>=4.0
+channels-redis
+celery>=5.4
+redis>=5.0
+python-dotenv
+python-json-logger
+psycopg[binary]
+requests>=2.32
+django-allauth>=65
+PyJWT[crypto]>=2.9

@@ -1,0 +1,268 @@
+from typing import List
+import logging
+
+from django.conf import settings
+from django.db.models import Q
+from django.http import Http404
+from django.shortcuts import get_object_or_404
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from rest_framework.generics import ListAPIView
+from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
+
+from apps.chat.models import Conversation, Message
+from .serializers import (
+    MessageCreateSerializer,
+    MessageSerializer,
+    ConversationSerializer,
+)
+from apps.gateway.service import get_provider
+
+
+log = logging.getLogger(__name__)
+
+
+# ---------------------------
+# Helpers (session + access)
+# ---------------------------
+
+def _session_ids(request) -> List[int]:
+    """آیدی گفت‌وگوهای مهمان که در سشن ذخیره شده‌اند (لیست امن)."""
+    ids = request.session.get("guest_conversations", [])
+    return ids if isinstance(ids, list) else []
+
+
+def _add_session_conv(request, conv_id: int) -> None:
+    """افزودن conv جدید مهمان به سشن."""
+    ids = _session_ids(request)
+    if conv_id not in ids:
+        ids.append(conv_id)
+        request.session["guest_conversations"] = ids
+        request.session.modified = True
+
+
+def _accessible_conversations(request):
+    """
+    مجموعه‌ی گفتگوهایی که کاربر فعلی به آن‌ها دسترسی دارد:
+      - اگر لاگین: owner == user  یا  (owner is null و conv در سشن مهمان باشد)
+      - اگر مهمان: owner is null و conv در سشن مهمان باشد
+    """
+    sess_ids = _session_ids(request)
+    if request.user.is_authenticated:
+        return Conversation.objects.filter(
+            Q(owner=request.user) | Q(owner__isnull=True, id__in=sess_ids)
+        )
+    else:
+        return Conversation.objects.filter(owner__isnull=True, id__in=sess_ids)
+
+
+def _ensure_access_or_404(request, conv: Conversation) -> None:
+    """
+    کنترل دسترسی برای یک گفتگو (در مسیرهایی که conv قبلاً گرفته شده).
+    - کاربر لاگین: یا owner خودش باشد، یا conv بی‌مالک و در سشن باشد.
+    - مهمان: conv باید در سشن باشد.
+    """
+    user = request.user if request.user.is_authenticated else None
+    sess_ids = _session_ids(request)
+
+    if user:
+        allowed = (conv.owner_id == user.id) or (conv.owner_id is None and conv.id in sess_ids)
+    else:
+        allowed = (conv.owner_id is None) and (conv.id in sess_ids)
+
+    if not allowed:
+        raise Http404
+
+
+# ---------------------------
+# Message Create (sync)
+# ---------------------------
+
+class MessageCreateView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+
+    def post(self, request):
+        ser = MessageCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        # محدودیت طول پیام
+        max_len = getattr(settings, "MAX_PROMPT_CHARS", 4000)
+        if len(data["content"]) > max_len:
+            return Response(
+                {"detail": f"Message too long (>{max_len} chars)."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        # انتخاب یا ساخت گفتگو
+        if data.get("conversation_id"):
+            conv = get_object_or_404(Conversation, id=data["conversation_id"])
+            _ensure_access_or_404(request, conv)
+            # اگر لاگین و conv بی‌مالک → Claim
+            if request.user.is_authenticated and conv.owner_id is None:
+                conv.owner = request.user
+                conv.save(update_fields=["owner"])
+        else:
+            conv = Conversation.objects.create(
+                owner=request.user if request.user.is_authenticated else None,
+                title="",
+            )
+            if not request.user.is_authenticated:
+                _add_session_conv(request, conv.id)
+
+        # ثبت پیام کاربر
+        user_msg = Message.objects.create(
+            conversation=conv,
+            role=Message.Role.USER,
+            content=data["content"],
+            status=Message.Status.WORKING,
+            provider=(data.get("provider") or "").strip() or None,
+            model_name=(data.get("model") or "").strip() or None,
+        )
+
+        # تولید پاسخ
+        provider = get_provider(user_msg.provider)  # اگر None، provider پیش‌فرض
+        events = provider.generate(
+            messages=[{"role": "user", "content": data["content"]}],
+            model=user_msg.model_name,
+            stream=True,  # اینجا خروجی را جمع می‌کنیم
+        )
+
+        response_text = ""
+        for ev in events:
+            if ev.get("type") == "token":
+                response_text += ev.get("delta", "")
+
+        # ثبت پیام دستیار و اتمام
+        Message.objects.create(
+            conversation=conv,
+            role=Message.Role.ASSISTANT,
+            content=response_text,
+            status=Message.Status.DONE,
+            provider=getattr(provider, "name", "unknown"),
+            model_name=user_msg.model_name or getattr(provider, "default_model", None),
+        )
+        user_msg.status = Message.Status.DONE
+        user_msg.save(update_fields=["status"])
+
+        return Response(
+            {"conversation_id": conv.id, "message_id": user_msg.id, "response": response_text},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# ---------------------------
+# Message Create (stream init)
+# ---------------------------
+
+class MessageCreateStreamView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+
+    def post(self, request):
+        ser = MessageCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+
+        # محدودیت طول پیام
+        max_len = getattr(settings, "MAX_PROMPT_CHARS", 4000)
+        if len(data["content"]) > max_len:
+            return Response(
+                {"detail": f"Message too long (>{max_len} chars)."},
+                status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            )
+
+        # انتخاب یا ساخت گفتگو
+        if data.get("conversation_id"):
+            conv = get_object_or_404(Conversation, id=data["conversation_id"])
+            _ensure_access_or_404(request, conv)
+            if request.user.is_authenticated and conv.owner_id is None:
+                conv.owner = request.user
+                conv.save(update_fields=["owner"])
+        else:
+            conv = Conversation.objects.create(
+                owner=request.user if request.user.is_authenticated else None,
+                title="",
+            )
+            if not request.user.is_authenticated:
+                _add_session_conv(request, conv.id)
+
+        # ثبت پیام کاربر در حالت queued
+        user_msg = Message.objects.create(
+            conversation=conv,
+            role=Message.Role.USER,
+            content=data["content"],
+            status=Message.Status.QUEUED,
+            provider=(data.get("provider") or "").strip() or None,
+            model_name=(data.get("model") or "").strip() or None,
+        )
+
+        ws_path = f"/ws/messages/{user_msg.id}/stream/"
+        return Response(
+            {"conversation_id": conv.id, "message_id": user_msg.id, "ws_path": ws_path},
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# ---------------------------
+# Conversations list
+# ---------------------------
+
+class ConversationListView(ListAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    serializer_class = ConversationSerializer
+
+    def get_queryset(self):
+        # فقط گفتگوهای قابل‌دسترسی برای کاربر فعلی
+        return _accessible_conversations(self.request).order_by("-updated_at")
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        ids = list(qs.values_list("id", flat=True))
+        log.info("CONV_LIST", extra={
+            "user_id": getattr(request.user, "id", None),
+            "sess_ids": request.session.get("guest_conversations", []),
+            "returned_ids": ids,
+        })
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
+
+
+# ---------------------------
+# Messages of one conversation
+# ---------------------------
+
+class ConversationMessagesView(ListAPIView):
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    serializer_class = MessageSerializer
+
+    def get_queryset(self):
+        conversation_id = self.kwargs["conversation_id"]
+        # فقط از بین گفتگوهای قابل‌دسترسی انتخاب کن
+        conv = get_object_or_404(_accessible_conversations(self.request), pk=conversation_id)
+        return Message.objects.filter(conversation=conv).order_by("id")
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        count = qs.count()
+        log.info("CONV_MSGS", extra={
+            "user_id": getattr(request.user, "id", None),
+            "pk": self.kwargs.get("conversation_id"),
+            "count": count,
+        })
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)

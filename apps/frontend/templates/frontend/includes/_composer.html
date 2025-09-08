@@ -1,0 +1,48 @@
+<!-- templates/frontend/includes/_composer.html -->
+<div id="composer" class="composer">
+  <div class="composer-bar" role="group" aria-label="ارسال پیام">
+    <!-- آیکن سمت شروع (ضمیمه/پلاس) -->
+    <button id="attach" class="icon-btn icon-btn--ghost" type="button" title="افزودن">
+      <!-- plus -->
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+
+    <!-- متن پیام (چندخطی) -->
+    <textarea id="inp"
+              rows="1"
+              placeholder="پیام خود را بنویسید… (Shift+Enter = خط جدید)"
+              autocomplete="off"
+              aria-label="متن پیام"
+              dir="auto"></textarea>
+
+    <!-- آیکن‌های سمت پایان (میکروفون + ارسال) -->
+    <div class="composer-actions-inline">
+      <button id="mic" class="icon-btn icon-btn--ghost" type="button" title="ضبط صدا">
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 1 0 6 0V6a3 3 0 0 0-3-3z"
+                fill="currentColor"/>
+          <path d="M19 10a7 7 0 0 1-14 0M12 17v4" fill="none" stroke="currentColor"
+                stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <button id="send" class="icon-btn icon-btn--primary" type="button" aria-label="ارسال" title="ارسال">
+        <!-- arrow-up -->
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+          <path d="M12 19V5M12 5l-6 6M12 5l6 6"
+                fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- دکمه‌های کمکی؛ بیرون از نوار یکپارچه بمانند -->
+  <div class="composer-actions-extra">
+    <button id="stop"  class="btn-secondary hidden" type="button" title="توقف تولید">⏹️</button>
+    <button id="regen" class="btn-secondary hidden" type="button" title="تولید مجدد پاسخ">↻</button>
+  </div>
+</div>

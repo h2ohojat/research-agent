@@ -1,0 +1,80 @@
+{% load socialaccount %}
+<header class="topbar">
+  <div class="topbar__left">
+    <a class="brand" href="/">Pyamooz <span class="brand-accent">AI</span></a>
+    <div class="divider"></div>
+
+    <!-- Provider/Model controls -->
+    <div class="model-controls">
+      <label for="provider">Provider:</label>
+      <select id="provider">
+        <option value="avalai">avalai</option>
+        <option value="fake">fake</option>
+      </select>
+      <label for="model">Model:</label>
+      <select id="model"></select>
+    </div>
+  </div>
+
+  <div class="topbar__right">
+    <div class="user-info user-info--compact">
+
+      {% if request.user.is_authenticated %}
+        {% with sa=request.user.socialaccount_set.first %}
+          <div class="user-cluster">
+
+            {# --- آواتار: تصویر گوگل، در غیر اینصورت حروف اول، و اگر هیچ نبود علامت سؤال --- #}
+            {% if sa and sa.extra_data.picture %}
+              <img class="avatar"
+                   src="{{ sa.extra_data.picture }}"
+                   alt="تصویر کاربر"
+                   referrerpolicy="no-referrer" />
+            {% else %}
+              {% if request.user.first_name or request.user.last_name %}
+                <div class="avatar avatar--fallback">
+                  {{ request.user.first_name|default:""|slice:":1"|upper }}{{ request.user.last_name|default:""|slice:":1"|upper }}
+                </div>
+              {% elif request.user.email %}
+                <div class="avatar avatar--fallback">
+                  {{ request.user.email|slice:":1"|upper }}
+                </div>
+              {% else %}
+                <div class="avatar avatar--fallback">?</div>
+              {% endif %}
+            {% endif %}
+
+            <div class="user-meta">
+              <form action="{% url 'account_logout' %}" method="post" class="inline">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="btn-link">خروج</button>
+              </form>
+            </div>
+          </div>
+        {% endwith %}
+      {% else %}
+        <!-- دکمه آیکونی ورود با گوگل -->
+        <a class="icon-btn icon-btn--google"
+           href="{% provider_login_url 'google' process='login' next=request.get_full_path %}"
+           role="button" aria-label="ورود با گوگل" title="ورود با گوگل">
+          <svg class="icon icon--g" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+            <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.7 3.8-5.5 3.8-3.3 0-6-2.7-6-6s2.7-6 6-6c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.4 3 14.4 2 12 2 6.9 2 2.8 6.1 2.8 11.2S6.9 20.4 12 20.4c6.9 0 8.2-4.8 7.8-7.2H12z"/>
+          </svg>
+          <span class="btn-text"></span>
+        </a>
+      {% endif %}
+
+      <!-- دکمه تغییر تم (ماه/خورشید) -->
+      <button id="themeToggleBtn" class="icon-btn" aria-label="تغییر تم" title="تغییر تم">
+        <!-- خورشید -->
+        <svg class="icon icon--sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.8 1.42-1.42zm10.48 0l1.8-1.79 1.41 1.41-1.79 1.8-1.42-1.42zM12 4V1h-0v3h0zm0 19v-3h0v3h0zm8-8h3v0h-3v0zM1 12h3v0H1v0zm3.55 6.45l-1.8 1.79 1.41 1.41 1.8-1.79-1.41-1.41zm13.9 0l1.8 1.79-1.41 1.41-1.8-1.79 1.41-1.41zM12 7a5 5 0 100 10 5 5 0 000-10z"></path>
+        </svg>
+        <!-- ماه -->
+        <svg class="icon icon--moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
