@@ -19,8 +19,11 @@ from .serializers import (
     MessageSerializer,
     ConversationSerializer,
 )
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 from apps.gateway.service import get_provider
-
+from apps.queueapp.tasks import run_generation_task  # ✨ وارد کردن وظیفه Celery
 
 log = logging.getLogger(__name__)
 
@@ -78,7 +81,7 @@ def _ensure_access_or_404(request, conv: Conversation) -> None:
 
 
 # ---------------------------
-# Message Create (sync)
+# Message Create (sync) - (بدون تغییر)
 # ---------------------------
 
 class MessageCreateView(APIView):
@@ -90,7 +93,6 @@ class MessageCreateView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
-        # محدودیت طول پیام
         max_len = getattr(settings, "MAX_PROMPT_CHARS", 4000)
         if len(data["content"]) > max_len:
             return Response(
@@ -98,11 +100,9 @@ class MessageCreateView(APIView):
                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
 
-        # انتخاب یا ساخت گفتگو
         if data.get("conversation_id"):
             conv = get_object_or_404(Conversation, id=data["conversation_id"])
             _ensure_access_or_404(request, conv)
-            # اگر لاگین و conv بی‌مالک → Claim
             if request.user.is_authenticated and conv.owner_id is None:
                 conv.owner = request.user
                 conv.save(update_fields=["owner"])
@@ -114,7 +114,6 @@ class MessageCreateView(APIView):
             if not request.user.is_authenticated:
                 _add_session_conv(request, conv.id)
 
-        # ثبت پیام کاربر
         user_msg = Message.objects.create(
             conversation=conv,
             role=Message.Role.USER,
@@ -124,12 +123,11 @@ class MessageCreateView(APIView):
             model_name=(data.get("model") or "").strip() or None,
         )
 
-        # تولید پاسخ
-        provider = get_provider(user_msg.provider)  # اگر None، provider پیش‌فرض
+        provider = get_provider(user_msg.provider)
         events = provider.generate(
             messages=[{"role": "user", "content": data["content"]}],
             model=user_msg.model_name,
-            stream=True,  # اینجا خروجی را جمع می‌کنیم
+            stream=True,
         )
 
         response_text = ""
@@ -137,7 +135,6 @@ class MessageCreateView(APIView):
             if ev.get("type") == "token":
                 response_text += ev.get("delta", "")
 
-        # ثبت پیام دستیار و اتمام
         Message.objects.create(
             conversation=conv,
             role=Message.Role.ASSISTANT,
@@ -156,7 +153,7 @@ class MessageCreateView(APIView):
 
 
 # ---------------------------
-# Message Create (stream init)
+# Message Create (stream init) - (✨ بخش اصلی تغییرات)
 # ---------------------------
 
 class MessageCreateStreamView(APIView):
@@ -168,7 +165,6 @@ class MessageCreateStreamView(APIView):
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
 
-        # محدودیت طول پیام
         max_len = getattr(settings, "MAX_PROMPT_CHARS", 4000)
         if len(data["content"]) > max_len:
             return Response(
@@ -176,7 +172,7 @@ class MessageCreateStreamView(APIView):
                 status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             )
 
-        # انتخاب یا ساخت گفتگو
+        new_conv_created = False
         if data.get("conversation_id"):
             conv = get_object_or_404(Conversation, id=data["conversation_id"])
             _ensure_access_or_404(request, conv)
@@ -184,14 +180,13 @@ class MessageCreateStreamView(APIView):
                 conv.owner = request.user
                 conv.save(update_fields=["owner"])
         else:
-            conv = Conversation.objects.create(
-                owner=request.user if request.user.is_authenticated else None,
-                title="",
-            )
+            owner = request.user if request.user.is_authenticated else None
+            conv = Conversation.objects.create(owner=owner, title="")
+            new_conv_created = True
+            log.debug(f"✅ New conversation created with ID: {conv.id} for owner: {owner}")
             if not request.user.is_authenticated:
                 _add_session_conv(request, conv.id)
 
-        # ثبت پیام کاربر در حالت queued
         user_msg = Message.objects.create(
             conversation=conv,
             role=Message.Role.USER,
@@ -200,25 +195,33 @@ class MessageCreateStreamView(APIView):
             provider=(data.get("provider") or "").strip() or None,
             model_name=(data.get("model") or "").strip() or None,
         )
+        log.debug(f"✅ New message created with ID: {user_msg.id} in conversation: {conv.id}")
+        
+        run_generation_task.delay(user_msg.id)
 
-        ws_path = f"/ws/messages/{user_msg.id}/stream/"
-        return Response(
-            {"conversation_id": conv.id, "message_id": user_msg.id, "ws_path": ws_path},
-            status=status.HTTP_201_CREATED,
-        )
+        response_data = {
+            "conversation_id": conv.id,
+            "message_id": user_msg.id,
+            "ws_path": f"/ws/messages/{user_msg.id}/stream/",
+        }
+
+        if new_conv_created:
+            response_data['new_conversation'] = ConversationSerializer(conv).data
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
 
 # ---------------------------
-# Conversations list
+# Conversations list - (بدون تغییر)
 # ---------------------------
 
 class ConversationListView(ListAPIView):
+    # ... (بدون تغییر)
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
     serializer_class = ConversationSerializer
 
     def get_queryset(self):
-        # فقط گفتگوهای قابل‌دسترسی برای کاربر فعلی
         return _accessible_conversations(self.request).order_by("-updated_at")
 
     def list(self, request, *args, **kwargs):
@@ -236,19 +239,18 @@ class ConversationListView(ListAPIView):
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
 
-
 # ---------------------------
-# Messages of one conversation
+# Messages of one conversation - (بدون تغییر)
 # ---------------------------
 
 class ConversationMessagesView(ListAPIView):
+    # ... (بدون تغییر)
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
     serializer_class = MessageSerializer
 
     def get_queryset(self):
         conversation_id = self.kwargs["conversation_id"]
-        # فقط از بین گفتگوهای قابل‌دسترسی انتخاب کن
         conv = get_object_or_404(_accessible_conversations(self.request), pk=conversation_id)
         return Message.objects.filter(conversation=conv).order_by("id")
 
@@ -266,3 +268,29 @@ class ConversationMessagesView(ListAPIView):
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(qs, many=True)
         return Response(serializer.data)
+
+# ---------------------------
+# Authentication Status - (بدون تغییر)
+# ---------------------------
+
+@require_http_methods(["GET"])
+@csrf_exempt
+def auth_status(request):
+    # ... (بدون تغییر)
+    if request.user.is_authenticated:
+        user_data = {
+            'id': request.user.id,
+            'email': request.user.email,
+            'first_name': request.user.first_name or '',
+            'last_name': request.user.last_name or '',
+        }
+        if hasattr(request.user, 'avatar_url'): user_data['avatar_url'] = request.user.avatar_url or ''
+        if hasattr(request.user, 'phone_number'): user_data['phone_number'] = request.user.phone_number or ''
+        if hasattr(request.user, 'default_provider'): user_data['default_provider'] = request.user.default_provider or ''
+        if hasattr(request.user, 'default_model'): user_data['default_model'] = request.user.default_model or ''
+        log.info("AUTH_STATUS_CHECK", extra={"user_id": request.user.id, "email": request.user.email, "authenticated": True})
+        return JsonResponse({'authenticated': True, 'user': user_data})
+    else:
+        session_convs = _session_ids(request)
+        log.info("AUTH_STATUS_CHECK", extra={"authenticated": False, "guest_conversations": len(session_convs)})
+        return JsonResponse({'authenticated': False, 'user': None, 'guest_conversations_count': len(session_convs)})

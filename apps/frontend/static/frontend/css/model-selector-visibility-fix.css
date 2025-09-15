@@ -1,0 +1,107 @@
+/* =========================================================
+   Model Selector Permanent Visibility Fix
+   Critical: این فایل مشکل نمایش model selector را برای همیشه حل می‌کند
+   ========================================================= */
+
+/* Force visibility برای model-selector-wrapper */
+.model-selector-wrapper {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 100 !important;
+    min-width: 120px !important;
+    height: auto !important;
+    flex-shrink: 0 !important;
+}
+
+/* تضمین نمایش در همه حالت‌های composer */
+.composer .model-selector-wrapper,
+.composer-bar .model-selector-wrapper,
+.composer-left .model-selector-wrapper {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+}
+
+/* Force visibility برای model-selector خود */
+.model-selector {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    width: 100% !important;
+}
+
+/* Force visibility برای trigger */
+.model-selector-trigger {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    position: relative !important;
+}
+
+/* جلوگیری از مخفی شدن توسط overflow */
+.composer,
+.composer-bar,
+.composer-left {
+    overflow: visible !important;
+}
+
+/* تضمین نمایش dropdown */
+.model-selector.open .model-selector-dropdown {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 1000 !important;
+}
+
+/* Fix برای حالت‌های مختلف چت */
+.chat-active .model-selector-wrapper,
+.conversation-started .model-selector-wrapper,
+.messaging .model-selector-wrapper,
+.streaming .model-selector-wrapper,
+.chat-view .model-selector-wrapper {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Override هرگونه animation یا transition که ممکن است مشکل ایجاد کند */
+.model-selector-wrapper,
+.model-selector,
+.model-selector-trigger {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
+}
+
+/* Fix برای container */
+#modelSelectorContainer {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    height: auto !important;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+    .model-selector-wrapper {
+        min-width: 100px !important;
+    }
+}
+
+/* Debug styles - فقط برای تست (بعداً حذف کن) */
+.debug-model-selector .model-selector-wrapper {
+    border: 2px solid red !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.debug-model-selector .model-selector-trigger {
+    border: 2px solid blue !important;
+    background: rgba(0, 0, 255, 0.1) !important;
+}

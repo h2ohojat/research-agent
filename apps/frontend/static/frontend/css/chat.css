@@ -1,393 +1,396 @@
 /* =========================================================
-   Pyamooz AI — Chat UI (cleaned & optimized)
+   Pyamooz AI — Chat-only styles (scoped)
+   اثر فقط داخل .chat-panel یا #chatView
    ========================================================= */
 
-/* ---------- Design Tokens ---------- */
-:root{
-  --gap:12px;
-  --primary-color:#0090ff;
-  --primary-light:#eaf2ff;
-  --primary-border:#7aa7ff;
+/* --------- Root scopes: هر دو مسیر را پشتیبانی کن --------- */
+.chat-panel, #chatView {}
 
-  --bg-body:#f8f9fa;
-  --bg-surface:#fff;
-  --bg-hover:#f0f7ff;
-
-  --border:#ddd;
-  --border-light:#e3e3e3;
-
-  --text:#222;
-  --text-2:#444;
-  --text-3:#666;
-  --text-4:#777;
-
-  --shadow:0 2px 8px rgba(0,0,0,0.1);
-
-  --radius:12px;
-  --radius-sm:8px;
-
-  /* توسط JS ست می‌شود؛ مقدار پیش‌فرض برای فالو‌بک */
-  --composer-height:84px;
+/* ====== LAYOUT: پیام‌ها اسکرول، کامپوزر چسبیده پایین ====== */
+.chat-panel, #chatView {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh; /* برای موبایل پایدارتر از 100vh */
 }
 
-/* ---------- Base ---------- */
-html,body{height:100%}
-body{
-  font-family:Tahoma,Arial,sans-serif;
-  margin:0;
-  padding:0;
-  background:var(--bg-body);
-  color:var(--text);
-  line-height:1.6;
+/* ناحیهٔ اسکرول پیام‌ها */
+.chat-panel .chat-scroll,
+#chatView .chat-scroll {
+  flex: 1 1 auto;
+  min-height: 0; /* حیاتی برای فعال‌شدن اسکرول در flex/grid */
 }
 
-/* ---------- Container for content centering ---------- */
-.container{
-  max-width:1200px; 
-  margin:0 auto;
-  padding:24px 16px;
+.chat-panel #chatMessages,
+#chatView #chatMessages {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--gap, 12px);
+  padding-bottom: calc(var(--composer-height, 84px) + env(safe-area-inset-bottom, 0) + 12px);
+  box-sizing: border-box;
 }
 
-/* ---------- Topbar (full-width background) ---------- */
-.topbar-wrapper{
-  width:100%;
-  background:var(--bg-surface);
-  border-bottom:1px solid var(--border-light);
-  box-shadow:var(--shadow);
-  margin-bottom:16px;
+/* اسکرول‌بار فقط برای لیست پیام‌ها (زیباتر) */
+.chat-panel #chatMessages::-webkit-scrollbar,
+#chatView #chatMessages::-webkit-scrollbar { width: 8px; }
+.chat-panel #chatMessages::-webkit-scrollbar-thumb,
+#chatView #chatMessages::-webkit-scrollbar-thumb {
+  background-color: #e1e7f0; border-radius: 10px;
+}
+.chat-panel #chatMessages::-webkit-scrollbar-thumb:hover,
+#chatView #chatMessages::-webkit-scrollbar-thumb:hover {
+  background-color: #cdd6e4;
 }
 
-.topbar{
-  display:flex; 
-  justify-content:space-between; 
-  align-items:center;
-  max-width:1200px;
-  margin:0 auto;
-  padding:10px 16px;
+/* ====== COMPOSER: sticky پایین + چینش دلخواه ====== */
+.chat-panel .composer,
+#chatView .composer {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: var(--bg-surface, #fff);
+  border-top: 1px solid var(--border-light, #e3e3e3);
+  padding: 8px 12px;   /* اگر include پدینگ دارد، متناسب کن */
+  border-radius: 0;    /* خنثی‌سازی هر radius عمومی */
 }
 
-.topbar__left{display:flex; align-items:center; gap:12px;}
-.brand{font-weight:700; color:var(--text); text-decoration:none; font-size:18px;}
-.brand-accent{color:var(--primary-color)}
-.divider{width:1px; height:20px; background:var(--border-light)}
-.model-controls{display:flex; align-items:center; gap:8px; font-size:14px;}
-.user-info--compact{font-size:14px}
-.btn-link{background:transparent; border:none; color:var(--primary-color); cursor:pointer; padding:2px 6px; text-decoration:underline;}
-.btn-link:hover{background:rgba(0,144,255,0.08)}
+/* نوار داخل کامپوزر — از Grid به Flex برای کنترل بهتر چینش */
+.chat-panel .composer-bar,
+#chatView .composer-bar {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 
-/* Theme toggle icons (sun/moon) */
-.icon{display:block}
-.icon-btn{
-  display:inline-grid; place-items:center;
-  width:36px; height:36px; border-radius:10px;
-  background:transparent; border:1px solid var(--border-light);
-  cursor:pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-start;          /* به‌جای space-between */
+
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-light, #e3e3e3);
+  border-radius: 9999px;
+  padding: 8px;
+  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,.08));
 }
-.icon-btn:hover{ background:var(--bg-hover) }
-.icon--moon{ display:none }
-:root[data-theme="dark"] .icon--sun{ display:none }
-:root[data-theme="dark"] .icon--moon{ display:block }
-
-/* ---------- Layout ---------- */
-.layout{
-  display:flex; gap:var(--gap); align-items:flex-start;
-  background:var(--bg-surface);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow);
-  overflow:visible;            /* برای sticky composer */
-  min-height:70vh;
-  max-width:1200px;
-  margin:0 auto;
+.chat-panel .composer-bar:focus-within,
+#chatView .composer-bar:focus-within {
+  border-color: var(--primary-border, #7aa7ff);
+  box-shadow: 0 0 0 4px rgba(0,144,255,.08);
 }
 
-.sidebar{
-  width:300px; max-height:70vh; overflow:auto;
-  border-inline-end:1px solid var(--border);
-  padding:16px; background:#f8f9fa;
-}
-.sidebar h3{margin:0 0 16px 0; font-size:18px; color:var(--text-2); font-weight:600}
-.conv{display:flex; flex-direction:column; gap:8px}
-.conv-item{
-  padding:12px 14px; border-radius:var(--radius-sm); border:1px solid var(--border-light);
-  background:#fff; cursor:pointer; transition:all .2s ease;
-}
-.conv-item:hover{background:var(--bg-hover); border-color:var(--primary-border); transform:translateY(-1px); box-shadow:0 2px 4px rgba(0,0,0,.1)}
-.conv-item.active{border-color:var(--primary-border); background:var(--primary-light); box-shadow:0 2px 4px rgba(0,144,255,.2)}
-.conv-item .ttl{font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; margin-bottom:4px}
-.conv-item .meta{font-size:12px; color:var(--text-4)}
-
-.sidebar-buttons{display:flex; gap:8px; margin-top:16px}
-.sidebar-buttons button{
-  flex:1; padding:8px 12px; font-size:13px; background:#fff; color:var(--text-2);
-  border:1px solid var(--border-light); border-radius:var(--radius-sm);
-}
-.sidebar-buttons button:hover{background:var(--primary-light); color:var(--primary-color); border-color:var(--primary-border)}
-
-.content{
-  flex:1; 
-  padding:20px; 
-  display:flex; 
-  flex-direction:column; 
-  align-items:stretch;
-  position:relative;
-}
-.subtitle{color:var(--text-3); margin-top:-8px; margin-bottom:20px; font-size:15px; font-weight:500}
-
-/* ---------- Messages ---------- */
-.msg{
-  position:relative;
-  padding:12px 16px;
-  border-radius:var(--radius);
-  margin:10px 0;
-  line-height:1.7;
-  box-shadow:0 1px 3px rgba(0,0,0,.1);
-}
-.user{background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%); border-inline-start:4px solid var(--primary-color); margin-inline-start:40px}
-.assistant{background:linear-gradient(135deg,#f1f8e9 0%,#dcedc8 100%); border-inline-start:4px solid #4caf50; margin-inline-end:40px}
-.sys{background:linear-gradient(135deg,#fff3e0 0%,#ffe0b2 100%); border-inline-start:4px solid #ff9800; text-align:center; font-style:italic}
-.meta{
-  font-size:12px; color:var(--text-3); margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,0,0,.1);
-  background:rgba(255,255,255,.5); border-radius:4px; padding:6px 8px;
+/* ظرف ورودی جهت گسترش خوب */
+.chat-panel #composer,
+#chatView #composer {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-/* Message actions (Copy) */
-.msg-actions{
-  position:absolute; top:8px; inset-inline-start:8px;
-  display:none; gap:6px;
-}
-.msg:hover .msg-actions{ display:flex; }
-.msg-action{
-  padding:4px 8px; border:1px solid var(--border-light);
-  border-radius:8px; background:#fff; color:var(--text-2);
-  font-size:12px; cursor:pointer;
-}
-.msg-action:hover{ background:var(--bg-hover); }
-
-/* ---------- Markdown ---------- */
-pre, code, .ltr{direction:ltr; unicode-bidi:plaintext} /* برای کد و URL */
-
-.markdown-body{ line-height:1.8; word-wrap:break-word }
-.markdown-body p{ margin:.5rem 0 }
-.markdown-body h1,.markdown-body h2,.markdown-body h3{ margin:.8rem 0 .4rem; font-weight:700 }
-.markdown-body code{ background:rgba(0,0,0,.06); padding:.1rem .35rem; border-radius:6px }
-:root[data-theme="dark"] .markdown-body code{ background:rgba(255,255,255,.08) }
-
-.markdown-body pre{
-  position:relative; border-radius:12px; overflow:auto;
-  direction:ltr; unicode-bidi:plaintext;
-  background:rgba(0,0,0,.05);
-}
-:root[data-theme="dark"] .markdown-body pre{ background:rgba(255,255,255,.06) }
-.markdown-body pre code{ display:block; padding:12px 16px; line-height:1.7 }
-
-/* Code copy button (small & precise) */
-.markdown-body pre{ padding-top:34px }
-.code-copy-btn{
-  position:absolute; top:6px; inset-inline-end:6px;
-  font-size:12px !important; line-height:1 !important; padding:4px 8px !important;
-  border:1px solid var(--border-light) !important; border-radius:8px !important;
-  background:var(--bg-surface) !important; color:var(--text-2) !important;
-  cursor:pointer;
-}
-.code-copy-btn:hover{ background:var(--bg-hover) !important; }
-
-/* ---------- Composer (search-like pill) ---------- */
-#composer{ 
-  width:100%; 
-  align-self:stretch;
+/* textarea داخل کامپوزر */
+.chat-panel #composer #inp,
+#chatView #composer #inp {
+  border: 0; outline: none; background: transparent; color: var(--text, #222);
+  width: 100%; min-height: 40px; max-height: 35vh; line-height: 1.6;
+  padding: 10px 0; resize: none; overflow-y: hidden;
 }
 
-.composer{
-  position:sticky; 
-  bottom:0; 
-  left:0;
-  right:0;
-  z-index:50;
-  padding:12px 12px calc(env(safe-area-inset-bottom,0) + 12px);
-  background:transparent;
-  border-radius:16px 16px 0 0;
+/* دکمه‌ها در کامپوزر (آیکنی) */
+.chat-panel #composer .icon-btn,
+#chatView #composer .icon-btn {
+  width: 36px; height: 36px; min-width: 0 !important; padding: 0 !important;
+  border: 1px solid transparent !important; border-radius: 9999px;
+  display: inline-grid; place-items: center;
+  background: transparent; color: var(--text-2, #444);
+  cursor: pointer;
+}
+.chat-panel #composer .icon-btn--ghost:hover,
+#chatView #composer .icon-btn--ghost:hover {
+  background: var(--bg-hover, #f0f7ff);
+}
+.chat-panel #composer .icon-btn--primary,
+#chatView #composer .icon-btn--primary {
+  background: var(--primary-color, #0090ff); color: #fff;
+  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,.08));
 }
 
-.composer-bar{
-  width:100%; 
-  max-width:1200px;
-  margin:0 auto;
-  box-sizing:border-box;
-  display:grid; 
-  grid-template-columns:auto 1fr auto; 
-  align-items:center; 
-  gap:8px;
-
-  background:var(--bg-surface);
-  border:1px solid var(--border-light);
-  border-radius:9999px;                 /* pill */
-  padding:8px 8px;
-  box-shadow:var(--shadow);
-}
-.composer-bar:focus-within{
-  border-color:var(--primary-border);
-  box-shadow:0 0 0 4px rgba(0,144,255,.08);
+/* ➡️ دکمه ارسال سمت راست؛ بقیه کنترل‌ها سمت چپ */
+.chat-panel .composer-bar .icon-btn--primary,
+#chatView .composer-bar .icon-btn--primary,
+.chat-panel .composer-bar #btnSend2,
+#chatView .composer-bar #btnSend2 {
+  margin-inline-start: auto; /* ستون انعطاف را به راست هل می‌دهد */
 }
 
-/* Textarea inside pill */
-#composer #inp{
-  border:0; outline:none; background:transparent; color:var(--text);
-  width:100%; min-height:40px; max-height:35vh; line-height:1.6;
-  padding:10px 0; resize:none; overflow-y:hidden;
-  flex:1 1 auto; min-width:0;
+/* اگر مدل‌سلکتور داخل کامپوزر است، کمی جمع‌وجور شود */
+.chat-panel .composer .model-selector,
+#chatView .composer .model-selector {
+  min-width: 180px;
 }
 
-/* Inline actions (mic / send) */
-.composer-actions-inline{ display:inline-flex; align-items:center; gap:6px; }
-
-/* Icon buttons (small — inside pill) */
-#composer .icon-btn{
-  width:36px; height:36px; min-width:0 !important; padding:0 !important;
-  border:1px solid transparent !important; border-radius:9999px;
-  display:inline-grid; place-items:center;
-  background:transparent; color:var(--text-2);
-  cursor:pointer;
-}
-#composer .icon-btn--ghost:hover{ background:var(--bg-hover); }
-#composer .icon-btn--primary{ background:var(--primary-color); color:#fff; box-shadow:var(--shadow); }
-#composer .icon-btn--primary:hover{ filter:brightness(.95); }
-
-/* Extra actions under pill (اختیاری) */
-.composer-actions-extra{ 
-  margin-top:8px; 
-  display:flex; 
-  gap:8px;
-  max-width:1200px;
-  margin-left:auto;
-  margin-right:auto;
-}
-.hidden{ display:none !important; }
-.btn-secondary{
-  background:var(--bg-surface); color:var(--text-2);
-  border:1px solid var(--border-light); border-radius:8px; padding:8px 12px;
-}
-.btn-secondary:hover{ background:var(--bg-hover); }
-.btn-primary[disabled], .btn-secondary[disabled]{ opacity:.6; cursor:not-allowed; }
-
-/* Main list should leave space for sticky composer */
-#list{ 
-  flex:1 1 auto; 
-  padding-bottom: var(--composer-offset, 96px);
-  overflow-y:auto;
+/* ====== پیام‌ها / حباب‌ها ====== */
+/* بیس خنثی: هر ارث‌بری عمومی را برای چت صفر می‌کنیم */
+.chat-panel .msg,
+#chatView .msg {
+  position: relative;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin: 10px 0;
+  line-height: 1.7;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-inline-start: 0 !important;
 }
 
-/* ---------- Jump-to-bottom FAB (centered above composer) ---------- */
-#jumpToBottom{
-  position:fixed;
-  z-index:99;
-  left:50%;
-  transform:translateX(-50%);
-  bottom:calc(var(--composer-height, 84px) + env(safe-area-inset-bottom,0) + 10px);
+/* خود حباب (ظرف markdown) */
+.chat-panel .bubble,
+#chatView .bubble {
+  max-width: 70%;
+  unicode-bidi: plaintext;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
 
-  width:48px; 
-  height:48px;
-  display:none;                       /* با کلاس .show ظاهر می‌شود */
-  padding:0; 
-  border:none; 
-  border-radius:9999px;
-  background:var(--primary-color); 
-  color:#fff;
-  place-items:center; 
-  line-height:0;
-  box-shadow:var(--shadow); 
-  cursor:pointer;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
-#jumpToBottom.show{ display:grid }
-#jumpToBottom svg{ width:22px; height:22px; pointer-events:none }
-#jumpToBottom:hover{ 
-  transform:translateX(-50%) translateY(-2px); 
-  box-shadow:0 6px 16px rgba(0,0,0,.15) 
-}
-#jumpToBottom:active{ transform:translateX(-50%) translateY(-1px) }
 
-/* ---------- User cluster (avatar + name + logout) ---------- */
-.user-cluster{ display:flex; align-items:center; gap:10px; }
-.avatar{
-  width:32px; height:32px; border-radius:50%;
-  object-fit:cover; border:1px solid var(--border-light); background:#ddd;
+/* پیام کاربر: خاکستری ملایم */
+.chat-panel .msg.user .bubble,
+#chatView .msg.user .bubble {
+  background: #f3f4f6 !important;       /* خاکستری روشن */
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04) !important;
 }
-.avatar--fallback{
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:12px; font-weight:700; color:#fff;
-  background:linear-gradient(135deg,#5a8cff,#2d6bff);
-}
-.user-meta{display:flex; align-items:center; gap:8px; white-space:nowrap}
-.user-greet{font-size:14px; color:var(--text-2)}
 
-/* ---------- Dark Theme ---------- */
-:root[data-theme="dark"]{
-  --bg-body:#0f141a;
-  --bg-surface:#141a21;
-  --bg-hover:#18212b;
-  --border:#2a3440;
-  --border-light:#2a3440;
-  --text:#e5edf5;
-  --text-2:#c8d2dc;
-  --text-3:#a9b4bf;
-  --text-4:#8994a1;
-  --primary-light:#0f2236;
-  --shadow:0 2px 8px rgba(0,0,0,0.4);
+/* پاسخ دستیار: بدون پس‌زمینه/کادر */
+.chat-panel .msg.assistant .bubble,
+#chatView .msg.assistant .bubble {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
-:root[data-theme="dark"] body{ background:var(--bg-body); color:var(--text) }
-:root[data-theme="dark"] .topbar-wrapper,
-:root[data-theme="dark"] .layout,
-:root[data-theme="dark"] .sidebar,
-:root[data-theme="dark"] .content .msg{ background:var(--bg-surface); border-color:var(--border-light); }
-:root[data-theme="dark"] .msg-action{ background:var(--bg-surface); color:var(--text-2); border-color:var(--border-light); }
-:root[data-theme="dark"] .code-copy-btn{ background:var(--bg-surface) !important; color:var(--text-2) !important; border-color:var(--border-light) !important; }
-:root[data-theme="dark"] #jumpToBottom{ background:#2563eb; }
 
-/* ---------- Login with Google (wide icon button) ---------- */
-.btn-google{
-  display:inline-flex; align-items:center; gap:8px;
-  height:36px; padding:0 12px;
-  border:1px solid var(--border-light); border-radius:10px;
-  background:#fff; color:var(--text-2); text-decoration:none; cursor:pointer;
-}
-.btn-google:hover{ background:var(--bg-hover) }
-:root[data-theme="dark"] .btn-google{ background:var(--bg-surface); color:var(--text-2); border-color:var(--border-light) }
+/* چیدمان غیرمتقارن اختیاری */
+.chat-panel .msg.user,
+#chatView .msg.user { margin-inline-start: 40px; }
+.chat-panel .msg.assistant,
+#chatView .msg.assistant { margin-inline-end: 40px; }
 
-/* ---------- Responsive ---------- */
-@media (max-width:768px){
-  .container{
-    padding:12px 8px;
-  }
-  
-  .topbar{
-    padding:10px 8px;
-  }
-  
-  .layout{
-    flex-direction:column;
-    margin:0 8px;
-  }
-  
-  .sidebar{
-    width:100%; 
-    max-height:200px; 
-    border-inline-end:none; 
-    border-bottom:1px solid var(--border);
-  }
-  
-  .model-controls{
-    flex-wrap:wrap;
-  }
-  
-  #composer #inp{ 
-    max-height:30vh;
-  }
-  
-  .composer-bar{
-    margin:0 8px;
-  }
-  
-  .composer-actions-extra{
-    margin-left:8px;
-    margin-right:8px;
-  }
+/* BiDi: وقتی فارسی، راست‌چین */
+.chat-panel .bubble[dir="rtl"],
+#chatView .bubble[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
 }
+
+/* code/pre همیشه LTR و ایزوله */
+.chat-panel .bubble pre,
+.chat-panel .bubble code,
+#chatView .bubble pre,
+#chatView .bubble code {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate !important;
+}
+
+/* کرسر استریم (▮) */
+.chat-panel .streaming-cursor,
+#chatView .streaming-cursor {
+  display: inline-block;
+  animation: chat-blink 1s steps(2, end) infinite;
+  opacity: 0.8;
+}
+@keyframes chat-blink {
+  50% { opacity: 0; }
+}
+
+/* اکشن‌های پیام (کپی، …) - اختیاری */
+.chat-panel .msg-actions,
+#chatView .msg-actions {
+  position: absolute; top: 8px; inset-inline-start: 8px;
+  display: none; gap: 6px;
+}
+.chat-panel .msg:hover .msg-actions,
+#chatView .msg:hover .msg-actions { display: flex; }
+.chat-panel .msg-action,
+#chatView .msg-action {
+  padding: 4px 8px;
+  border: 1px solid var(--border-light, #e3e3e3);
+  border-radius: 8px;
+  background: var(--bg-surface, #fff);
+  color: var(--text-2, #444);
+  font-size: 12px; cursor: pointer;
+}
+.chat-panel .msg-action:hover,
+#chatView .msg-action:hover { background: var(--bg-hover, #f0f7ff); }
+
+/* ====== FAB «برو پایین» (اختیاری) ====== */
+.chat-panel #jumpToBottom,
+#chatView #jumpToBottom {
+  position: fixed;
+  z-index: 99;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--composer-height, 84px) + env(safe-area-inset-bottom,0) + 10px);
+
+  width: 48px; height: 48px;
+  display: none; /* با کلاس .show ظاهر شود */
+  padding: 0; border: none; border-radius: 9999px;
+  background: var(--primary-color, #0090ff); color: #fff;
+  place-items: center; line-height: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  cursor: pointer;
+}
+.chat-panel #jumpToBottom.show,
+#chatView #jumpToBottom.show { display: grid }
+.chat-panel #jumpToBottom:hover,
+#chatView #jumpToBottom:hover {
+  transform: translateX(-50%) translateY(-2px);
+}
+
+/* ====== ریسپانسیو فقط برای چت ====== */
+@media (max-width: 768px) {
+  .chat-panel #composer #inp,
+  #chatView #composer #inp { max-height: 30vh; }
+  .chat-panel .composer-bar,
+  #chatView .composer-bar { margin: 0 8px; }
+}
+/* ====== ALIGNMENT (final, direction-proof) ====== */
+/* ظرف هر پیام را فلکس و محور را همیشه LTR نگه دار تا flex-start/flex-end ثابت بمانند */
+.chat-panel .msg,
+#chatView .msg {
+  display: flex;
+  flex-direction: row;
+  direction: ltr;           /* مهم: جهتِ محورِ فلکس را قفل می‌کند */
+}
+
+/* کاربر → راست ؛ دستیار → چپ */
+.chat-panel .msg.user,
+#chatView .msg.user {
+  justify-content: flex-end;  /* حباب کاربر می‌رود سمت راست */
+  margin-inline-start: 0;
+  margin-inline-end: 0;
+}
+.chat-panel .msg.assistant,
+#chatView .msg.assistant {
+  justify-content: flex-start; /* حباب دستیار می‌رود سمت چپ */
+  margin-inline-start: 0;
+  margin-inline-end: 0;
+}
+
+/* هرگونه مارجین قبلی روی خود حباب را خنثی کن تا جا‌به‌جایی ایجاد نشود */
+.chat-panel .msg .bubble,
+#chatView .msg .bubble {
+  margin: 0 !important;
+  max-width: 72%;
+}
+
+/* ====== ROUNDED CORNERS (با درنظرگرفتن RTL متن) ====== */
+/* LTR پیش‌فرض: کاربر (راست) notch پایین-راست؛ دستیار (چپ) notch پایین-چپ */
+.chat-panel .msg.user .bubble,
+#chatView .msg.user .bubble {
+  border-radius: 16px 16px 4px 16px;    /* tl tr br bl */
+}
+.chat-panel .msg.assistant .bubble,
+#chatView .msg.assistant .bubble {
+  border-radius: 16px 16px 16px 4px;
+}
+
+/* اگر محتوای حباب RTL شد، notch‌ها را معکوس کن تا طبیعی دیده شوند */
+.chat-panel .msg.user .bubble[dir="rtl"],
+#chatView .msg.user .bubble[dir="rtl"] {
+  border-radius: 16px 16px 16px 4px;
+}
+.chat-panel .msg.assistant .bubble[dir="rtl"],
+#chatView .msg.assistant .bubble[dir="rtl"] {
+  border-radius: 16px 16px 4px 16px;
+}
+/* ====== Assistant full-width (no right gap) ====== */
+
+/* هر ردیف پیام عرض کامل بگیره تا بتونیم حباب assistant رو 100% کنیم */
+.chat-panel .msg,
+#chatView .msg {
+  width: 100%;
+}
+
+/* برای ردیف‌های assistant، فاصله‌ی سمت راست ظرف پیام را صفر کن */
+.chat-panel .msg.assistant,
+#chatView .msg.assistant {
+  padding-inline-end: 0; /* چون .msg را قبلاً direction:ltr کردیم، یعنی padding-right:0 */
+}
+
+/* خود حبابِ assistant را تمام‌عرض کن و محدودیت max-width را بردار */
+.chat-panel .msg.assistant .bubble,
+#chatView .msg.assistant .bubble {
+  width: 100%;
+  max-width: 100% !important; /* override روی max-width عمومی (۷۰/۷۲٪) */
+  margin: 0 !important;       /* هر مارجین باقیمانده را خنثی کن */
+}
+
+/* برای پیام کاربر همان محدودیت عرض را نگه داریم (راست‌چینِ خاکستری) */
+.chat-panel .msg.user .bubble,
+#chatView .msg.user .bubble {
+  max-width: 72%;
+}
+/* ====== User bubble comfy spacing (inner + outer) ====== */
+/* فاصلهٔ داخلی راحت برای متن داخل حباب کاربر */
+.chat-panel .msg.user .bubble,
+#chatView .msg.user .bubble {
+  padding: var(--bubble-pad-y, 10px) var(--bubble-pad-x, 14px); /* داخل حباب */
+  /* فاصلهٔ بیرونی نرم تا به لبهٔ کانتینر نچسبد */
+  margin-inline-end: 8px;  /* چون حباب کاربر سمت راست‌ـه */
+  margin-inline-start: 8px; /* کمی فاصله از سمت مقابل برای تعادل */
+  border-radius: 16px;     /* گردی یکنواخت؛ اگر قبلاً notch گذاشتی، می‌تونی نگه‌داری */
+}
+
+/* اگر از notchهای سفارشی استفاده می‌کنی، این‌ها را هم نگه دار تا با padding جدید هماهنگ بماند */
+.chat-panel .msg.user .bubble[dir="rtl"],
+#chatView .msg.user .bubble[dir="rtl"] {
+  border-radius: 16px 16px 16px 4px; /* مطابق تنظیمات قبلی‌ات؛ دلخواه */
+}
+.chat-panel .msg.user .bubble:not([dir="rtl"]),
+#chatView .msg.user .bubble:not([dir="rtl"]) {
+  border-radius: 16px 16px 4px 16px;
+}
+
+/* کمی اصلاح فاصله پاراگراف‌ها داخل حباب (دلخواه) */
+.chat-panel .msg.user .bubble p,
+#chatView .msg.user .bubble p {
+  margin: 0.3em 0;
+}
+/* === Centered Jump-to-Bottom inside Composer === */
+.chat-panel .composer-holder { position: relative; }
+
+/* دکمهٔ وسط کامپوزر */
+.chat-panel .composer-holder #jumpToBottom {
+  position: absolute !important;         /* override هر استایل قبلی */
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);      /* دقیقاً وسطِ کامپوزر */
+  z-index: 30;
+
+  width: 40px;
+  height: 40px;
+  display: none;                         /* با کلاس .show ظاهر می‌شود */
+  place-items: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border-light, #e3e3e3);
+  background: var(--bg-surface, #fff);
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  color: var(--text-2, #444);
+  cursor: pointer;
+}
+
+.chat-panel .composer-holder #jumpToBottom.show { display: grid; }
+
+.chat-panel .composer-holder #jumpToBottom:hover {
+  background: var(--bg-hover, #f0f7ff);
+}
+
+.chat-panel .composer-holder #jumpToBottom svg {
+  width: 20px; height: 20px; display: block;
+  fill: currentColor;
+}
+
+/* اگر کامپوزر خیلی شلوغ است و می‌خواهی دکمه کمی بالاتر/پایین‌تر باشد، یکی از این‌ها را فعال کن: */
+/* .chat-panel .composer-holder #jumpToBottom { top: 45%; } */
+/* .chat-panel .composer-holder #jumpToBottom { top: 55%; } */

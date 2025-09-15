@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Research Agent{% endblock %}
+
+{% block content %}
+  <!-- Home View Only -->
+  <div class="panel" style="margin-bottom: 24px">
+    <!-- Hero Section -->
+    <div class="hero">
+      <span class="pill" role="status">⚡ AI Agent Launched</span>
+      <h1 style="margin: 10px 0 0">AI Assistant to Automate<br>Everyday Research Tasks</h1>
+      <p style="color: #64748b; margin-top: 10px">Write a research task or choose one below and the agent will use the best AI models, tools and data to complete it for you.</p>
+    </div>
+
+    <!-- Home Composer -->
+    {% include 'frontend/includes/composer.html' with textarea_id='homeInput' deep_btn_id='btnDeep' model_select_id='modelSelect' send_btn_id='btnSend' aria_label='Enter your research task' %}
+  </div>
+
+  <!-- Quick Tiles -->
+  {% include 'frontend/includes/quick_tiles.html' %}
+{% endblock %}
+

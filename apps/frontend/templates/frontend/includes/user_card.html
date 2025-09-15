@@ -1,0 +1,9 @@
+<div class="user-card" role="region" aria-label="User information">
+  <div class="avatar" style="background: linear-gradient(135deg,#06b6d4,#0ea5ff)" aria-hidden="true">
+    {{ user_initial|default:"H" }}
+  </div>
+  <div style="font-size: 13px">
+    <div style="font-weight: 600">{{ user_name|default:" " }}</div>
+    <div style="color: #64748b">{{ user_email|default:" " }}</div>
+  </div>
+</div>

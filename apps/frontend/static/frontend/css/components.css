@@ -1,0 +1,749 @@
+/* =========================================================
+   UI Components
+   ========================================================= */
+
+/* Buttons */
+.btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: #f8fafc;
+}
+
+.btn-square {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  padding: 0;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+.btn-primary:hover {
+  filter: brightness(0.96);
+}
+
+.btn-ghost {
+  background: #fff;
+  border: 1px solid var(--border);
+  color: #111827;
+}
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  padding: 0;
+}
+
+/* Composer */
+.composer {
+  margin-top: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textarea {
+  flex: 1;
+  min-height: 56px;
+  max-height: 40vh;
+  resize: none;
+  border: 0;
+  outline: 0;
+  font-size: 15px;
+  line-height: 22px;
+  padding: 0 2px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.composer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.credits {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 10px;
+  color: #475569;
+  height: 32px;
+  font-size: 12px;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+
+.chip.icon-only {
+  padding: 6px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+}
+
+.chip.active {
+  background: #eaf4ff;
+  border-color: #b6dbff;
+  color: #0369a1;
+}
+
+.model-select {
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 10px;
+  font-size: 12px;
+  color: #0f172a;
+  background: #fff;
+  font-family: inherit;
+}
+
+/* Cards */
+.card-tile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: #fff;
+  text-align: left;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.card-tile:hover {
+  transform: translateY(-1.5px);
+  box-shadow: 0 10px 26px rgba(2, 6, 23, 0.08);
+}
+
+.tile-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.tool-icon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, #eef6ff, #ffffff);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: #0f172a;
+}
+
+.chev {
+  color: #94a3b8;
+}
+
+.load-more {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.load-more:hover {
+  background: #f1f5f9;
+}
+
+/* Icons */
+svg {
+  flex-shrink: 0;
+}
+
+/* Utilities */
+.hidden {
+  display: none !important;
+}
+
+.show {
+  display: block !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .composer-left {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  
+  .card-tile {
+    padding: 12px 14px;
+  }
+  
+  .tool-icon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* ============================================= */
+/*  Model Selector Trigger Button
+/*  This styles the new button that replaces the old dropdown.
+/* ============================================= */
+
+.model-selector-trigger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Pushes the arrow to the end */
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--sidebar-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    font-family: inherit; /* Ensures the button uses the main font */
+    color: inherit; /* Ensures text color is inherited */
+}
+
+.model-selector-trigger-btn:hover {
+    background-color: var(--border-color);
+    border-color: var(--primary-color-light); /* A subtle highlight on hover */
+}
+
+/* Inherits styles from the old component for consistency */
+.model-selector-trigger-btn .model-selector__selected {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    overflow: hidden; /* Prevents long names from breaking layout */
+}
+
+.model-selector-trigger-btn .model-selector__info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.3;
+}
+
+.model-selector-trigger-btn .model-selector__name {
+    color: var(--text-color-primary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.model-selector-trigger-btn .model-selector__provider {
+    color: var(--text-color-secondary);
+    font-size: 0.8rem;
+}
+
+.model-selector-trigger-btn .model-selector__arrow {
+    color: var(--text-color-secondary);
+    transition: transform 0.2s ease;
+}
+
+
+/* ============================================= */
+/*  Generic Modal Styles (Reusable)
+/* ============================================= */
+
+/* The semi-transparent background overlay */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 1000; /* High z-index to be on top of everything */
+    
+    display: none; /* Hidden by default */
+    align-items: center;
+    justify-content: center;
+    
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* This class will be added by JavaScript to show the modal */
+.modal-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+/* The main modal window */
+.modal-container {
+    background-color: var(--main-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh; /* Limit height to 85% of viewport height */
+    
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Important for containing elements and rounded corners */
+
+    /* Animation for popping in */
+    transform: scale(0.95);
+    transition: transform 0.2s ease-in-out;
+}
+
+.modal-overlay.active .modal-container {
+    transform: scale(1);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; /* Prevents the header from shrinking */
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--text-color-primary);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    color: var(--text-color-secondary);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1; /* Takes up the remaining available space */
+    overflow: hidden; /* Manages the scrolling child */
+}
+
+.modal-search-container {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; /* Prevents the search bar from shrinking */
+}
+
+#model-search-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--sidebar-bg-color); /* A slightly different bg */
+    color: var(--text-color-primary);
+    font-size: 1rem;
+}
+
+#model-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color-transparent);
+}
+
+.modal-model-list-container {
+    overflow-y: auto; /* The list itself is scrollable */
+    padding: 0.5rem 1.5rem;
+    flex-grow: 1; /* Ensures it fills the remaining space */
+}
+/* Add this class to the body when a modal is open */
+body.modal-open {
+    overflow: hidden;
+}
+/* Add this class to the body when the MOBILE sidebar is open */
+body.sidebar-open-mobile {
+    overflow: hidden;
+}
+/* وقتی مودال باز است، فقط اسکرول را ببند؛ مطمئن شو هیچ فیلتری روی body اعمال نشود */
+body.modal-open {
+  overflow: hidden;
+  filter: none !important;
+}
+
+/* لایهٔ اُورلی: تمام صفحه، بالاتر از همه، با تارکردن پس‌زمینه */
+.modal-overlay {
+  position: fixed;
+  inset: 0;                 /* top/right/bottom/left: 0 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;            /* از همه‌چیز بالاتر باشد */
+
+  /* پس‌زمینه نیمه‌شفاف برای تاریک کردن */
+  background: rgba(0, 0, 0, 0.35);
+
+  /* فقط پشتِ اُورلی تار شود (خودِ مودال تار نمی‌شود) */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); /* برای Safari/iOS */
+
+  /* افکت ظاهر شدن */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s ease;
+}
+
+/* وقتی فعال شد، کلیک‌پذیر و قابل مشاهده شود */
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* خودِ جعبهٔ مودال: همیشه واضح بماند */
+.modal-overlay .modal-container {
+  background: var(--bg-surface, #fff);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15);
+  max-width: min(960px, 90vw);
+  width: 100%;
+  margin: 16px;
+
+  /* تضمینِ شفاف بودن محتوای مودال */
+  filter: none !important;
+  -webkit-filter: none !important;
+  backdrop-filter: none !important; /* فقط برای اطمینان؛ روی خود مودال لازم نیست */
+  isolation: isolate; /* یک کانتکست جدا ایجاد کند (احتیاطی) */
+}
+
+/* به عنوان fallback اگر مرورگر از backdrop-filter پشتیبانی نکند */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .modal-overlay {
+    /* بدون تار شدن، فقط تیرگی پس‌زمینه می‌ماند */
+    background: rgba(0, 0, 0, 0.5);
+  }
+}
+/*
+ * Focus Management Override for Modals
+ * ------------------------------------
+ * This rule prevents the browser from showing a focus outline on the modal's
+ * main container or its overlay. Focus should be visible on interactive elements
+ * *inside* the modal (like buttons and inputs), but not the structural containers.
+*/
+.modal-overlay:focus,
+.modal-container:focus {
+  outline: none !important;
+  /* For older Firefox versions */
+  outline-style: none !important; 
+}
+/* ============================================= */
+/*   Model Selection Modal Specific Styles       */
+/* ============================================= */
+
+/* Container for different states (loading, error, list) */
+.modal-content-container {
+    position: relative;
+    min-height: 200px; /* Give it some height for the spinner */
+    display: flex;
+    flex-direction: column;
+}
+
+/* Base style for each state view */
+.modal-state-view {
+    display: none; /* Hide all states by default */
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    padding: 2rem 1rem;
+    flex-grow: 1;
+}
+
+/* Only show the active state */
+.modal-state-view.active {
+    display: flex;
+}
+
+.modal-state-view .error-message {
+    color: var(--color-error);
+    margin-bottom: 1rem;
+}
+
+
+/* --- Model Card Styles --- */
+
+.modal-model-list {
+    display: none; /* Hide by default, shown by .active */
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 1rem;
+    overflow-y: auto;
+    max-height: 50vh; /* Limit height to prevent overly long modals */
+}
+
+.modal-model-list.active {
+    display: flex;
+}
+
+.model-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--background-color-secondary);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.model-card:hover,
+.model-card:focus-visible {
+    background-color: var(--background-color-tertiary);
+    border-color: var(--color-primary);
+    outline: none;
+}
+
+.model-card-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.model-card-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color-primary);
+}
+
+.model-card-provider {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-color-secondary);
+    background-color: var(--background-color-tag);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.model-card-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-color-tertiary);
+}
+/* backend/apps/frontend/static/frontend/css/components.css */
+
+/* ============================================= */
+/*   Model Selector Modal List - CRITICAL FIX    */
+/* ============================================= */
+
+/* 1. Ensure the list container is visible and uses flexbox for layout. */
+#modal-model-list {
+    display: flex;             /* Use flexbox for alignment */
+    flex-direction: column;    /* Stack model cards vertically */
+    gap: 0.5rem;               /* Add some space between cards (8px) */
+    width: 100%;               /* Take up the full width of the modal body */
+    height: auto;              /* Allow it to grow as needed */
+    overflow-y: auto;          /* Add a scrollbar if the list is too long */
+}
+
+/* 2. Ensure individual model cards are visible and styled correctly. */
+.model-card {
+    display: flex;             /* Use flex for internal alignment of text */
+    flex-direction: column;    /* Stack title and meta vertically */
+    align-items: flex-start;   /* Align text to the left */
+    width: 100%;
+    padding: 0.75rem 1rem;     /* 12px vertical, 16px horizontal padding */
+    border: 1px solid #e0e0e0; /* A light border */
+    border-radius: 8px;        /* Rounded corners */
+    background-color: #ffffff; /* White background */
+    color: #333333;            /* Dark text color */
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    visibility: visible !important; /* Force visibility */
+    opacity: 1 !important;          /* Force opacity */
+}
+
+/* 3. Style for when a card is hovered over. */
+.model-card:hover {
+    background-color: #f5f5f5; /* Light grey on hover */
+    border-color: #cccccc;
+}
+
+/* 4. Style for the active/selected model card. */
+.model-card.active {
+    background-color: #e7f3ff; /* A light blue to indicate selection */
+    border-color: #007bff;     /* A blue border */
+    font-weight: 600;
+}
+
+/* 5. Typography inside the card */
+.model-card .model-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.model-card .model-meta {
+    font-size: 0.75rem;
+    color: #666666;
+    margin-top: 4px;
+}
+
+/* کُدبلوک‌ها */
+pre {
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border, #e3e3e3);
+  border-radius: var(--radius, 12px);
+  padding: 12px 14px;
+  overflow: auto;
+  box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,.06));
+  position: relative;
+  margin: 10px 0;
+}
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .92rem;
+}
+
+/* جدول‌ها */
+.bubble table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+}
+.bubble table th,
+.bubble table td {
+  border: 1px solid var(--border-light, #eee);
+  padding: 6px 8px;
+}
+.bubble table th {
+  background: var(--primary-light, #f7faff);
+  font-weight: 600;
+}
+
+/* نقل‌قول */
+.bubble blockquote {
+  border-inline-start: 4px solid var(--primary-border, #7aa7ff);
+  background: var(--primary-light, #f7faff);
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+/* دکمه کپی روی کد */
+.copy-btn {
+  cursor: pointer;
+  background: var(--bg-surface, #fff);
+}
+.copy-btn:hover { filter: brightness(0.97); }
+/*
+ * =========================================
+ *  Bidirectional Text (BiDi) Support v2
+ * =========================================
+ */
+
+/* Base: Ensures mixed LTR/RTL text behaves predictably */
+.bubble,
+.message-content {
+  unicode-bidi: plaintext;
+  word-wrap: break-word;
+  overflow-wrap: anywhere; /* Prevents long strings from breaking layout */
+}
+
+/* RTL container: Aligns text to the right */
+.bubble[dir="rtl"],
+.message-content[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+/* Force code to be LTR & isolated from surrounding text */
+.bubble pre,
+.bubble code,
+.message-content pre,
+.message-content code {
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: isolate !important;
+}
+
+/* Isolate inline elements so they don't corrupt sentence direction */
+.bubble a, .bubble b, .bubble strong, .bubble i, .bubble em,
+.message-content a, .message-content b, .message-content strong, .message-content i, .message-content em {
+  unicode-bidi: isolate;
+}
+
+/* Tables should follow the container's direction */
+.bubble th, .bubble td,
+.message-content th, .message-content td {
+  text-align: start; /* 'start' aligns left for LTR, and right for RTL */
+}
+/* === Add this CSS to the end of your stylesheet === */
+
+/* Container for the entire recent chats block */
+.recent-chats-container {
+  /* This class is mostly for structure and isolation */
+  margin-top: 1rem; /* Add some space from the top navigation */
+}
+
+/* The "Recent Chats" title */
+.recent-chats-title {
+  font-weight: 600;
+  padding: 12px 12px 8px 12px; /* Top, Right, Bottom, Left */
+  font-size: 0.9rem; /* Adjust if needed */
+  color: #8e8ea0; /* A neutral color, adjust to your theme */
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* The container for the actual list of chat links */
+.chat-history-items {
+  /* This div already has the ID 'chatHistoryList' */
+}
+
+/* Styling for each individual chat link inside the list */
+.chat-history-items .nav-link.history-link {
+  padding-left: 12px; /* Indent the chat links slightly */
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Adds '...' if the title is too long */
+}

@@ -1,16 +1,13 @@
-"""
-WSGI config for pyamooz_ai project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
-"""
-
+# pyamooz_ai/wsgi.py
 import os
-
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "pyamooz_ai.settings.dev")
+# ✅ محیط باید صراحتاً ست شده باشد؛ در غیر اینصورت خطا بده
+if not os.getenv("DJANGO_SETTINGS_MODULE"):
+    raise RuntimeError(
+        "DJANGO_SETTINGS_MODULE تعریف نشده است. "
+        "در محیط توسعه: pyamooz_ai.settings.dev "
+        "و در محیط تولید: pyamooz_ai.settings.prod را ست کنید."
+    )
 
 application = get_wsgi_application()

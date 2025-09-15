@@ -1,7 +1,7 @@
 # apps/chat/models.py
 from django.db import models
 from django.conf import settings
-from django.utils import timezone
+from django.utils import timezone  # ممکنه بعداً برای منطق زمانی بخوای استفاده کنی
 
 class Conversation(models.Model):
     owner = models.ForeignKey(
@@ -34,7 +34,11 @@ class Message(models.Model):
         DONE = "done", "Done"
         FAILED = "failed", "Failed"
 
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name="messages",  # ✅ برای دسترسی conv.messages
+    )
     role = models.CharField(max_length=16, choices=Role.choices)
     content = models.TextField(blank=True, default="")
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.DONE)

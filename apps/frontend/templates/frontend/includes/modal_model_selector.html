@@ -1,0 +1,69 @@
+{% comment %}
+    This partial template contains the HTML structure for the AI model selection modal.
+    It's designed to handle various states: loading, error, empty, and displaying a list of model cards.
+{% endcomment %}
+
+<!-- ============================================= -->
+<!--   Modal for Model Selection                   -->
+<!-- ============================================= -->
+<div class="modal-overlay" id="model-selection-modal" aria-hidden="true" role="dialog" aria-labelledby="modal-title-h2">
+    <div class="modal-container" role="document">
+
+        <header class="modal-header">
+            <h2 id="modal-title-h2" class="modal-title">لطفا یک مدل را انتخاب نمایید</h2>
+            <button class="modal-close" id="modal-close-btn" aria-label="Close modal">&times;</button>
+        </header>
+
+        <section class="modal-body">
+            <div class="modal-search-container">
+                <input type="search" id="model-search-input" placeholder="Search models (e.g., GPT, Claude)...">
+            </div>
+
+            {% comment %}
+                This is the main container that will display the current state.
+                JavaScript will manage showing/hiding the direct children of this container.
+                It uses 'aria-live' to announce changes to screen readers.
+            {% endcomment %}
+            <div class="modal-content-container" id="modal-content-container" aria-live="polite">
+
+                <!-- 1. Loading State -->
+                <div class="modal-state-view active" id="modal-loading-view">
+                    <div class="loading-spinner"></div>
+                    <p>بارگزاری مدل های زبانی</p>
+                </div>
+
+                <!-- 2. Error State -->
+                <div class="modal-state-view" id="modal-error-view">
+                    <p class="error-message">مدل زبانی در دسترس نیست لطفا بعدا دوباره تلاش کنید</p>
+                    <button id="modal-retry-btn" class="button-secondary">دوباره تلاش کنید</button>
+                </div>
+
+                <!-- 3. Empty State / No Results State -->
+                <div class="modal-state-view" id="modal-empty-view">
+                    <p>مدلی یافت نشد</p>
+                </div>
+
+                <!-- 4. Model List (Populated by JS) -->
+                <div class="modal-model-list" id="modal-model-list">
+                    {% comment %}
+                        JavaScript will populate this container with model cards.
+                        Example of a single model card structure:
+                        
+                        <button class="model-card" data-model-id="gpt-4o-mini">
+                            <div class="model-card-main">
+                                <span class="model-card-name">GPT-4o Mini</span>
+                                <span class="model-card-provider">OpenAI</span>
+                            </div>
+                            <div class="model-card-meta">
+                                <span>Context: 128k</span>
+                                <span>Supports Images</span>
+                            </div>
+                        </button>
+                    {% endcomment %}
+                </div>
+
+            </div>
+        </section>
+
+    </div>
+</div>

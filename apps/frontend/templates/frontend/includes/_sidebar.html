@@ -1,8 +1,34 @@
-<aside class="sidebar">
-  <h3>گفتگوها</h3>
-  <div id="conv-list" class="conv"></div>
-  <div class="sidebar-buttons">
-    <button id="new" title="شروع یک گفتگوی تازه">گفتگوی جدید</button>
-    <button id="refresh" title="تازه‌سازی لیست">تازه‌سازی</button>
+<aside class="sidebar" id="sidebar" aria-hidden="false" role="navigation" aria-label="نوار کناری">
+  <!-- عنوان و اکشن‌ها -->
+  <div class="sidebar-header">
+    <div class="section-title">گفتگوها</div>
+    <div class="sidebar-actions">
+      <!-- refresh: همان ID قبلی -->
+      <button id="refresh"
+              class="btn btn-ghost btn-icon"
+              title="تازه‌سازی لیست"
+              aria-label="تازه‌سازی لیست">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor"
+                d="M12 6a6 6 0 105.3 3H20a1 1 0 000-2h-4a1 1 0 00-1 1v4a1 1 0 002 0V9.7A8 8 0 114 12a1 1 0 102 0 6 6 0 016-6z"/>
+        </svg>
+      </button>
+
+      <!-- new: همان ID قبلی -->
+      <button id="new"
+              class="btn btn-primary"
+              title="شروع یک گفتگوی تازه"
+              aria-label="گفتگوی جدید">
+        گفتگوی جدید
+      </button>
+    </div>
+  </div>
+
+  <!-- لیست گفتگوها: همان ID قبلی برای سیم‌کشی JS -->
+  <div id="conv-list"
+       class="conv vstack gap-2"
+       role="list"
+       aria-label="لیست گفتگوها">
+    <!-- آیتم‌های گفتگو با JS اضافه می‌شوند -->
   </div>
 </aside>

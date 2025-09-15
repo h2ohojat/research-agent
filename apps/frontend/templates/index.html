@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}HEMMAT AI{% endblock %}
+
+{% block content %}
+  <!-- Home View -->
+  <div id="homeView">
+    <div class="panel" style="margin-bottom: 24px">
+      <!-- Hero Section -->
+      <div class="hero">
+        <span class="pill" role="status">⚡HEMMAT AI</span>
+        <h1 style="margin: 10px 0 0">دسترسی به<br>+250 <br>مدل زبانی</h1>
+        <p style="color: #64748b; margin-top: 10px">برای دسترسی کامل به مدل ها لطفا وارد حساب کاربری خود شوید</p>
+      </div>
+
+      <!-- Home Composer -->
+      {% include 'frontend/includes/composer.html' with textarea_id='homeInput' deep_btn_id='btnDeep' model_select_id='modelSelect' send_btn_id='btnSend' aria_label='موضوع تحقیقاتی خود را وارد کنید' %}
+    </div>
+
+    <!-- Quick Tiles -->
+    {% include 'frontend/includes/quick_tiles.html' %}
+  </div>
+
+  <!-- Chat View -->
+  <div class="panel chat-panel" id="chatView" style="display: none" role="log" aria-live="polite" aria-label="Chat conversation">
+    <div class="chat-scroll" aria-label="Chat messages">
+      <div id="chatMessages"></div>
+    </div>
+    
+    <!-- Chat Composer -->
+    {% include 'frontend/includes/composer.html' with textarea_id='chatInput' deep_btn_id='btnDeep2' model_select_id='modelSelect2' send_btn_id='btnSend2' aria_label='لطفا پیام خود را وارد کنید' %}
+  </div>
+{% endblock %}

@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
-
+# --- ✨ CRITICAL FIX: Explicitly load .env from the project root ---
+# This ensures .env is found regardless of how the server is started.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+ENV_FILE_PATH = BASE_DIR / ".env"
+load_dotenv(dotenv_path=ENV_FILE_PATH)
+
 
 # --- Core ---
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
@@ -41,6 +44,7 @@ INSTALLED_APPS = [
     "apps.chat",
     "apps.frontend",
     "apps.accounts",
+    "apps.models",
 ]
 
 MIDDLEWARE = [
@@ -182,4 +186,15 @@ LOGGING = {
     },
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
+}
+# تنظیمات مدل‌ها
+MODEL_SETTINGS = {
+    'AVALAI_API_URL': 'https://api.avalai.ir/public/models',
+    'CACHE_TIMEOUT': 300,  # 5 دقیقه
+    'SYNC_INTERVAL': 3600,  # 1 ساعت
+    'DEFAULT_GUEST_MODELS': [
+        'gpt-3.5-turbo',
+        'gpt-4o-mini',
+    ],
+    'RATE_LIMIT_WINDOW': 60,  # ثانیه
 }
