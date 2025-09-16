@@ -240,7 +240,6 @@
     _handleMessage(event) {
       try {
         const data = JSON.parse(event.data);
-        // Debug:
         console.log("📨 WebSocket message received:", data);
 
         switch (data.type) {
@@ -272,6 +271,27 @@
             console.error("❌ Streaming error from server:", data.error);
             window.appState?.update?.({ isLoading: false });
             window.appState?.emit?.("stream:error", data.error || "Streaming error");
+            break;
+            
+          // <<< CHANGE: Added this new case to correctly handle new conversations.
+          case "ConversationCreated":
+            // The backend has created a new conversation and sent us its ID and initial title.
+            // We must update our central state so that subsequent messages are sent
+            // with the correct conversation_id.
+            console.log(`✅ New conversation started. ID: ${data.conversation_id}, Title: "${data.title}"`);
+            if (window.appState && typeof window.appState.update === 'function') {
+              window.appState.update({
+                currentConversationId: data.conversation_id
+              });
+            }
+            // Emit an event that other modules (like the sidebar) can listen to,
+            // to add the new conversation to the UI without a full refresh.
+            if (window.EventBus && typeof window.EventBus.emit === 'function') {
+              window.EventBus.emit('chat:newConversation', { 
+                id: data.conversation_id, 
+                title: data.title 
+              });
+            }
             break;
 
           case "ping":
