@@ -1,5 +1,5 @@
 # pyamooz_ai/settings/prod.py
-from .base import *  # noqa
+from pyamooz_ai.settings.base import *
 import os
 
 # -------------------------
