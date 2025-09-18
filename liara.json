@@ -1,12 +1,7 @@
 {
-  "apps": [
-    {
-      "port": 8000,
-      "app": "h2ohojat",
-      "platform": "django",
-      "django": {
-        "command": "gunicorn --bind 0.0.0.0:$PORT pyamooz_ai.wsgi:application"
-      }
-    }
-  ]
+  "build": {
+    "commands": [
+      "python manage.py collectstatic --noinput"
+    ]
+  }
 }

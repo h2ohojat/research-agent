@@ -1,4 +1,3 @@
-set -e
+#!/bin/bash
 echo "Running migrations..."
-python manage.py migrate --noinput
-echo "Pre-start hooks finished."
+python manage.py migrate
