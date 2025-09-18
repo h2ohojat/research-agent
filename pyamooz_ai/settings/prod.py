@@ -51,10 +51,6 @@ DATABASES = {
 # -------- فایل‌های استاتیک (سرو با WhiteNoise) --------
 # WhiteNoise بهترین و ساده‌ترین راه برای سرو فایل‌های استاتیک در لیارا است.
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
-STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
-}
 
 # -------- Celery / Channels / Redis (اتصال به Redis لیارا) --------
 # آدرس سرور Redis از متغیر محیطی REDIS_URL خوانده می‌شود.

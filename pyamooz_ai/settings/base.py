@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from django.conf import settings
 
 # --- مسیردهی و بارگذاری متغیرهای محیطی ---
 # این بخش به صورت هوشمند فایل .env را از ریشه پروژه پیدا و بارگذاری می‌کند.
@@ -179,3 +180,8 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }
+
+if settings.DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
