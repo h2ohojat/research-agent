@@ -23,7 +23,8 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from apps.gateway.service import get_provider
-from apps.queueapp.tasks import run_generation_task  # ✨ وارد کردن وظیفه Celery
+from apps.queueapp.tasks import run_generation_task
+from apps.chat.services import _make_quick_title  # ✨ 1. ایمپورت تابع ساخت عنوان سریع
 
 log = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ def _ensure_access_or_404(request, conv: Conversation) -> None:
 
 
 # ---------------------------
-# Message Create (sync) - (بدون تغییر)
+# Message Create (sync)
 # ---------------------------
 
 class MessageCreateView(APIView):
@@ -107,9 +108,11 @@ class MessageCreateView(APIView):
                 conv.owner = request.user
                 conv.save(update_fields=["owner"])
         else:
+            # ✨ 2. ساخت عنوان سریع بلافاصله
+            quick_title = _make_quick_title(data["content"])
             conv = Conversation.objects.create(
                 owner=request.user if request.user.is_authenticated else None,
-                title="",
+                title=quick_title,  # ✨ 3. استفاده از عنوان سریع به جای عنوان خالی
             )
             if not request.user.is_authenticated:
                 _add_session_conv(request, conv.id)
@@ -181,9 +184,15 @@ class MessageCreateStreamView(APIView):
                 conv.save(update_fields=["owner"])
         else:
             owner = request.user if request.user.is_authenticated else None
-            conv = Conversation.objects.create(owner=owner, title="")
+            
+            # ✨ 2. ساخت عنوان سریع بلافاصله
+            quick_title = _make_quick_title(data["content"])
+            
+            # ✨ 3. ایجاد گفتگو با عنوان سریع برای جلوگیری از Race Condition
+            conv = Conversation.objects.create(owner=owner, title=quick_title)
+            
             new_conv_created = True
-            log.debug(f"✅ New conversation created with ID: {conv.id} for owner: {owner}")
+            log.debug(f"✅ New conversation created with ID: {conv.id}, Title: '{conv.title}' for owner: {owner}")
             if not request.user.is_authenticated:
                 _add_session_conv(request, conv.id)
 
@@ -212,11 +221,10 @@ class MessageCreateStreamView(APIView):
 
 
 # ---------------------------
-# Conversations list - (بدون تغییر)
+# Conversations list
 # ---------------------------
 
 class ConversationListView(ListAPIView):
-    # ... (بدون تغییر)
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
     serializer_class = ConversationSerializer
@@ -240,11 +248,10 @@ class ConversationListView(ListAPIView):
         return Response(serializer.data)
 
 # ---------------------------
-# Messages of one conversation - (بدون تغییر)
+# Messages of one conversation
 # ---------------------------
 
 class ConversationMessagesView(ListAPIView):
-    # ... (بدون تغییر)
     permission_classes = [AllowAny]
     authentication_classes = [SessionAuthentication]
     serializer_class = MessageSerializer
@@ -270,13 +277,12 @@ class ConversationMessagesView(ListAPIView):
         return Response(serializer.data)
 
 # ---------------------------
-# Authentication Status - (بدون تغییر)
+# Authentication Status
 # ---------------------------
 
 @require_http_methods(["GET"])
 @csrf_exempt
 def auth_status(request):
-    # ... (بدون تغییر)
     if request.user.is_authenticated:
         user_data = {
             'id': request.user.id,

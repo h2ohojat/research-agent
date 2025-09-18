@@ -168,122 +168,121 @@ def _extract_text_from_provider_response(result) -> str:
     return ""
 
 
+# ✨====== تغییر اصلی برای حل مشکل SynchronousOnlyOperation اینجاست ======✨
 @shared_task
 def generate_and_save_smart_title_task(conversation_id: int):
     """A Celery task to generate (or upgrade) a smart title for a conversation."""
-    log.info("SmartTitleTask start conv_id=%s", conversation_id)
-    try:
-        with transaction.atomic():
-            log.debug("Fetching conversation with SELECT ... FOR UPDATE (conv_id=%s)", conversation_id)
-            conv = Conversation.objects.select_for_update().get(id=conversation_id)
 
-            # فقط در این نقاط اجرا شود تا هزینه‌ی محاسباتی کنترل شود
-            message_count = conv.messages.filter(
-                role__in=[Message.Role.USER, Message.Role.ASSISTANT]
-            ).count()
-            log.info("Message count (USER/ASSISTANT) for conv=%s: %s", conversation_id, message_count)
+    def _sync_logic():
+        log.info("SmartTitleTask start conv_id=%s", conversation_id)
+        try:
+            with transaction.atomic():
+                log.debug("Fetching conversation with SELECT ... FOR UPDATE (conv_id=%s)", conversation_id)
+                conv = Conversation.objects.select_for_update().get(id=conversation_id)
 
-            # ✅ بعد از اولین پیام کاربر (1) یا بعد از اولین پاسخ دستیار (2) عنوان بزن؛
-            # ✅ همچنین در پیام پنجم یک «ارتقاء عنوان» بده.
-            if message_count not in (1, 2, 5):
-                log.info("Skip smart title (conv=%s): message_count=%s not in (1,2,5)", conversation_id, message_count)
-                return
+                message_count = conv.messages.filter(
+                    role__in=[Message.Role.USER, Message.Role.ASSISTANT]
+                ).count()
+                log.info("Message count (USER/ASSISTANT) for conv=%s: %s", conversation_id, message_count)
 
-            # تاریخچه‌ی کوتاه (آخرین ۵ پیام به ترتیب زمانی)
-            recent_messages = list(conv.messages.order_by('-created_at')[:5])
-            history_text = "\n".join(
-                f"{msg.get_role_display()}: {msg.content or ''}".strip()
-                for msg in reversed(recent_messages)
-            ).strip()
-            log.debug(
-                "History prepared (conv=%s): %s msgs, preview='%s'",
-                conversation_id, len(recent_messages), history_text[:200]
-            )
+                if message_count not in (1, 2, 5):
+                    log.info("Skip smart title (conv=%s): message_count=%s not in (1,2,5)", conversation_id, message_count)
+                    return
 
-            if not history_text:
-                log.info("No history available; skip smart title (conv=%s)", conversation_id)
-                return
+                recent_messages = list(conv.messages.order_by('-created_at')[:5])
+                history_text = "\n".join(
+                    f"{msg.get_role_display()}: {msg.content or ''}".strip()
+                    for msg in reversed(recent_messages)
+                ).strip()
+                log.debug(
+                    "History prepared (conv=%s): %s msgs, preview='%s'",
+                    conversation_id, len(recent_messages), history_text[:200]
+                )
 
-            # تعیین اینکه اجازه‌ی overwrite داریم یا نه
-            current_title = (conv.title or "").strip()
-            first_user_msg = conv.messages.filter(role=Message.Role.USER).order_by('created_at').first()
-            quick_title = _make_quick_title(first_user_msg.content if first_user_msg else "")
-            normalized_current = re.sub(r"\s+", " ", current_title)
-            normalized_quick   = re.sub(r"\s+", " ", quick_title)
+                if not history_text:
+                    log.info("No history available; skip smart title (conv=%s)", conversation_id)
+                    return
 
-            allow_overwrite = False
-            if not current_title:
-                allow_overwrite = True
-            elif normalized_current == normalized_quick:
-                allow_overwrite = True
-            elif current_title.lower() in {"untitled chat", "untitled", "بدون عنوان"}:
-                allow_overwrite = True
+                current_title = (conv.title or "").strip()
+                first_user_msg = conv.messages.filter(role=Message.Role.USER).order_by('created_at').first()
+                quick_title = _make_quick_title(first_user_msg.content if first_user_msg else "")
+                normalized_current = re.sub(r"\s+", " ", current_title)
+                normalized_quick   = re.sub(r"\s+", " ", quick_title)
 
-            log.info(
-                "Overwrite check (conv=%s): allow=%s | current='%s' | quick='%s'",
-                conversation_id, allow_overwrite, current_title, quick_title
-            )
-            if not allow_overwrite:
+                allow_overwrite = False
+                if not current_title:
+                    allow_overwrite = True
+                elif normalized_current == normalized_quick:
+                    allow_overwrite = True
+                elif current_title.lower() in {"untitled chat", "untitled", "بدون عنوان"}:
+                    allow_overwrite = True
+
                 log.info(
-                    "Skip smart-title overwrite (conv=%s): user-edited title detected",
-                    conversation_id
+                    "Overwrite check (conv=%s): allow=%s | current='%s' | quick='%s'",
+                    conversation_id, allow_overwrite, current_title, quick_title
                 )
-                return
+                if not allow_overwrite:
+                    log.info(
+                        "Skip smart-title overwrite (conv=%s): user-edited title detected",
+                        conversation_id
+                    )
+                    return
 
-            # ساخت پرامپت و فراخوانی provider (non-stream)
-            prompt = SMART_TITLE_PROMPT.format(conversation_history=history_text)
-            provider = get_provider()
-            prov_name = getattr(provider, "name", "unknown")
-            log.debug(
-                "Calling provider.generate (conv=%s, provider=%s) prompt_len=%s",
-                conversation_id, prov_name, len(prompt)
-            )
-            try:
-                result = provider.generate(
-                    messages=[{"role": "user", "content": prompt}],
-                    stream=False,
+                prompt = SMART_TITLE_PROMPT.format(conversation_history=history_text)
+                provider = get_provider()
+                prov_name = getattr(provider, "name", "unknown")
+                log.debug(
+                    "Calling provider.generate (conv=%s, provider=%s) prompt_len=%s",
+                    conversation_id, prov_name, len(prompt)
                 )
-            except TypeError:
-                # در برخی پیاده‌سازی‌ها پارامتر stream پشتیبانی نمی‌شود
-                log.debug("Provider does not accept stream kw; retrying without it (conv=%s)", conversation_id)
-                result = provider.generate(messages=[{"role": "user", "content": prompt}])
+                try:
+                    result = provider.generate(
+                        messages=[{"role": "user", "content": prompt}],
+                        stream=False,
+                    )
+                except TypeError:
+                    log.debug("Provider does not accept stream kw; retrying without it (conv=%s)", conversation_id)
+                    result = provider.generate(messages=[{"role": "user", "content": prompt}])
 
-            # استخراج و تمیز‌کردن خروجی
-            raw_title = _extract_text_from_provider_response(result)
-            log.debug("Raw title (conv=%s): '%s'", conversation_id, raw_title)
-            title = _clean_title(raw_title) or quick_title or "گفت‌وگوی جدید"
-            log.info("Cleaned title (conv=%s): '%s'", conversation_id, title)
+                raw_title = _extract_text_from_provider_response(result)
+                log.debug("Raw title (conv=%s): '%s'", conversation_id, raw_title)
+                title = _clean_title(raw_title) or quick_title or "گفت‌وگوی جدید"
+                log.info("Cleaned title (conv=%s): '%s'", conversation_id, title)
 
-            if title:
-                old_title = conv.title
-                conv.title = title
-                conv.save(update_fields=["title"])
-                log.info(
-                    "Title saved (conv=%s): new='%s' old='%s'",
-                    conversation_id, title, old_title
-                )
+                if title:
+                    old_title = conv.title
+                    conv.title = title
+                    conv.save(update_fields=["title"])
+                    log.info(
+                        "Title saved (conv=%s): new='%s' old='%s'",
+                        conversation_id, title, old_title
+                    )
 
-                # ✅ ارسال ایونت سبک وب‌سوکت برای آپدیت عنوان در UI
-                sid = getattr(conv, "session_id", None)  # ممکن است وجود نداشته باشد
-                _ws_emit(
-                    event={
-                        "type": "conversation.title_updated",
-                        "conversation_id": conv.id,
-                        "title": conv.title,
-                    },
-                    conv_id=conv.id,
-                    user_id=getattr(conv.owner, "id", None),
-                    session_id=str(sid) if sid else None,
-                )
-            else:
-                log.warning(
-                    "Empty/invalid title generated (conv=%s). Raw=%r",
-                    conversation_id, raw_title
-                )
+                    sid = getattr(conv, "session_id", None)
+                    _ws_emit(
+                        event={
+                            "type": "conversation.title_updated",
+                            "conversation_id": conv.id,
+                            "title": conv.title,
+                        },
+                        conv_id=conv.id,
+                        user_id=getattr(conv.owner, "id", None),
+                        session_id=str(sid) if sid else None,
+                    )
+                else:
+                    log.warning(
+                        "Empty/invalid title generated (conv=%s). Raw=%r",
+                        conversation_id, raw_title
+                    )
 
-    except Conversation.DoesNotExist:
-        log.error("Conversation not found (conv_id=%s) for title generation task.", conversation_id)
-    except Exception as e:
-        log.error("Error in smart title task (conv_id=%s): %s", conversation_id, e, exc_info=True)
-    finally:
-        log.info("SmartTitleTask end conv_id=%s", conversation_id)
+        except Conversation.DoesNotExist:
+            log.error("Conversation not found (conv_id=%s) for title generation task.", conversation_id)
+        except Exception as e:
+            log.error("Error in smart title task (conv_id=%s): %s", conversation_id, e, exc_info=True)
+        finally:
+            log.info("SmartTitleTask end conv_id=%s", conversation_id)
+
+    # فراخوانی تابع داخلی به صورت همزمان (sync)
+    _sync_logic()
+
+# ✨====== پایان تغییرات ======✨

@@ -1,3 +1,4 @@
+# pyamooz_ai/settings/base.py
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -8,11 +9,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 ENV_FILE_PATH = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_FILE_PATH)
 
-
 # --- Core ---
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
 DEBUG = os.getenv("DEBUG", "1") == "1"
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+
+# Django 5 default id field (افزوده شد)
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Locale & Time (افزوده شد؛ با پیش‌فرض تهران، قابل override از .env)
+LANGUAGE_CODE = os.getenv("LANGUAGE_CODE", "fa")
+TIME_ZONE = os.getenv("TIME_ZONE", "Asia/Tehran")
+USE_I18N = True
+USE_TZ = True
 
 INSTALLED_APPS = [
     # Third-party server FIRST (دقت: daphne باید قبل از staticfiles باشد)
@@ -118,7 +127,8 @@ CELERY_RESULT_BACKEND = (
     os.getenv("CELERY_RESULT_BACKEND")
     or (f"{REDIS_URL}/2" if REDIS_URL else "cache+memory://")
 )
-CELERY_TIMEZONE = "UTC"
+# هماهنگ با TZ پروژه؛ قابل override با CELERY_TIMEZONE در .env
+CELERY_TIMEZONE = os.getenv("CELERY_TIMEZONE", TIME_ZONE)
 
 # --- Static ---
 STATIC_URL = "static/"
@@ -167,11 +177,16 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-# CSRF لوکال
+# CSRF: لیست لوکال شما حفظ می‌شود؛ به‌علاوه مقادیر .env و دامنه‌های ALLOWED_HOSTS به‌صورت https
 CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
 ]
+_csrf_from_env = [o.strip() for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
+CSRF_TRUSTED_ORIGINS += _csrf_from_env
+CSRF_TRUSTED_ORIGINS += [f"https://{h.strip()}" for h in ALLOWED_HOSTS if h and h.strip() and h.strip() != "*"]
+# حذف تکراری‌ها
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 # --- Logging (JSON to stdout) ---
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
@@ -187,7 +202,8 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler", "formatter": "json"}},
     "root": {"handlers": ["console"], "level": LOG_LEVEL},
 }
-# تنظیمات مدل‌ها
+
+# تنظیمات مدل‌ها (حفظ‌شده)
 MODEL_SETTINGS = {
     'AVALAI_API_URL': 'https://api.avalai.ir/public/models',
     'CACHE_TIMEOUT': 300,  # 5 دقیقه

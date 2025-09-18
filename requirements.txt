@@ -10,3 +10,4 @@ psycopg[binary]
 requests>=2.32
 django-allauth>=65
 PyJWT[crypto]>=2.9
+whitenoise[brotli]

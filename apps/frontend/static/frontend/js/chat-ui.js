@@ -15,7 +15,7 @@
   let currentMessageTextBuffer = ''; // raw Markdown buffer
 
   // ---------- Smart Scroll State & Helpers ----------
-  let autoScroll = true;   // follow stream if user is near bottom (or just sent a msg)
+  let autoScroll = true;
   let rafScrollId = null;
 
   function isNearBottom(container, threshold = 80) {
@@ -37,7 +37,7 @@
       const c = window.elements.chatMessagesContainer;
       if (!c) return;
       if (autoScroll || isNearBottom(c)) {
-        c.scrollTop = c.scrollHeight; // cheap & fast
+        c.scrollTop = c.scrollHeight;
       }
     });
   }
@@ -48,7 +48,7 @@
     } catch {
       smoothScrollToBottom();
     }
-    autoScroll = true; // from now on, keep following stream until user scrolls up
+    autoScroll = true;
   }
 
   function createMessageElement(role, content, plainTextForBidi) {
@@ -144,8 +144,21 @@
       window.appState.on('stream:done', handleStreamDone);
       window.appState.on('stream:error', handleStreamError);
 
-      // ✨ FIX: listen to the correct key: currentConversationId
-      window.appState.on('stateChanged:currentConversationId', this.loadConversation.bind(this));
+      // ✨====== تغییر کلیدی اینجاست ======✨
+      // 1. شنونده قدیمی و مشکل‌ساز حذف شد.
+      // 2. شنونده جدید فقط به رویداد 'chat:selected' گوش می‌دهد.
+      window.appState.on('chat:selected', (conversationId) => {
+        if (!conversationId) return;
+        
+        console.log(`✅ chat:selected event received for ID: ${conversationId}. Updating state and loading history...`);
+        
+        // ابتدا state را آپدیت می‌کنیم تا UI (مثل سایدبار) واکنش نشان دهد
+        window.appState.update({ currentConversationId: conversationId });
+        
+        // سپس تاریخچه گفتگو را بارگذاری می‌کنیم
+        this.loadConversation(conversationId);
+      });
+      // ✨====== پایان تغییرات کلیدی ======✨
 
       const c = window.elements.chatMessagesContainer;
       if (c) {
@@ -173,7 +186,6 @@
       scheduleScrollToBottom();
       currentAssistantMessageElement = createMessageElement('assistant');
       currentAssistantBubbleElement = currentAssistantMessageElement.querySelector('.bubble');
-      // Static, developer-controlled snippet (safe)
       currentAssistantBubbleElement.innerHTML = '<span class="streaming-cursor">▋</span>';
       window.elements.chatMessagesContainer.appendChild(currentAssistantMessageElement);
       scrollMessageIntoView(currentAssistantMessageElement);
@@ -186,14 +198,15 @@
       }
     },
 
-    loadConversation: async function(event) {
-      const id = (event && typeof event === 'object' && 'to' in event) ? event.to : event;
-      const conversationId = (typeof id === 'string' && /^\d+$/.test(id)) ? parseInt(id, 10) : id;
-      if (!conversationId) return;
+    // ✨ تابع loadConversation کمی ساده‌تر شده تا فقط ID عددی را بپذیرد
+    loadConversation: async function(conversationId) {
+      if (!conversationId || typeof conversationId !== 'number') {
+        console.warn('loadConversation called with invalid ID:', conversationId);
+        return;
+      }
 
       console.log(`🔄 Loading messages for conversation ${conversationId}...`);
       
-      // ✨ FIX: use appState.get() and target 'chat' view
       if (window.appState.get().activeView !== 'chat') {
         window.appState.update({ activeView: 'chat' });
       }

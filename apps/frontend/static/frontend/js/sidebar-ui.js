@@ -60,8 +60,8 @@
 
     init: function() {
       window.appState.on('stateChanged:chatHistory', this.renderChatHistory.bind(this));
-
-      // ✨ FIX: رویداد درست برای تغییر گفتگو
+      
+      // این شنونده برای آپدیت کردن UI سایدبار (مثلا فعال کردن آیتم) لازم است
       window.appState.on('stateChanged:currentConversationId', () => {
         const history = window.appState.get().chatHistory || [];
         this.renderChatHistory(history);
@@ -78,10 +78,11 @@
           const conversationId = link.dataset.chatId;
           const current = window.appState.get().currentConversationId;
 
-          // به‌روزکردن ID فعال فقط وقتی تغییر کرده
           if (conversationId && conversationId != current) {
-            console.log(`History link clicked. Broadcasting new active conversation: ${conversationId}`);
-            window.appState.update({ currentConversationId: parseInt(conversationId, 10) });
+            console.log(`History link clicked. Emitting 'chat:selected' event with ID: ${conversationId}`);
+            
+            // ✨ تغییر کلیدی اینجاست: به جای آپدیت مستقیم state، یک رویداد مشخص ارسال می‌کنیم
+            window.appState.emit('chat:selected', parseInt(conversationId, 10));
           }
         });
       }

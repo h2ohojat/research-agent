@@ -4,7 +4,7 @@
  * - Robust connect/reconnect with exponential backoff
  * - Safe message queueing while disconnected
  * - Unified payload shape for `chat_message`
- * - Handles server events: connected | started | token | done | error | ping
+ * - Handles server events: connected | ConversationCreated | started | token | done | error | ping
  *
  * Exposes a singleton: window.websocketManager
  */
@@ -52,7 +52,6 @@
     init(opts = {}) {
       this.wsUrl = opts.url || this._buildDefaultUrl();
 
-      // Reconnect eagerly when tab becomes visible again
       if (!this._visibilityHookInstalled) {
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible' &&
@@ -60,6 +59,13 @@
             this.reconnectNow();
           }
         });
+
+        // Listen for 'new chat' events to clear the conversation context
+        window.appState?.on?.('chat:new', () => {
+          console.log('✨ chat:new event received. Clearing currentConversationId.');
+          window.appState?.update?.({ currentConversationId: null });
+        });
+
         this._visibilityHookInstalled = true;
       }
 
@@ -96,7 +102,6 @@
     sendMessage(input) {
       const state = (window.appState && window.appState.get) ? window.appState.get() : {};
 
-      // Normalize content
       const rawContent = (typeof input === "string") ? input : (input && input.content);
       const content = (rawContent == null) ? "" : String(rawContent).trim();
       if (!content) {
@@ -104,60 +109,47 @@
         return;
       }
 
-      // Resolve model to string model_id
       let model = null;
       if (typeof input === "object" && input && ("model" in input)) {
         const m = input.model;
-        if (typeof m === "string") {
-          model = m;
-        } else if (m && typeof m === "object") {
-          model = m.model_id || m.id || null;
-        } else if (typeof m === "number") {
-          model = null; // numeric id alone is not valid; will fallback below
-        }
+        if (typeof m === "string") model = m;
+        else if (m && typeof m === "object") model = m.model_id || m.id || null;
       }
-      if (!model) {
-        model = getEffectiveModelId();
-      }
+      if (!model) model = getEffectiveModelId();
+
       if (!model || typeof model !== "string") {
         console.error("❌ No valid model to send. Select a model first.");
         window.appState?.emit?.("stream:error", "No model selected.");
         return;
       }
 
-      // Resolve other optional fields
       const conversation_id =
         (typeof input === "object" && input && input.conversation_id != null)
           ? input.conversation_id
-          : (state.currentConversationId ?? null);
+          : state.currentConversationId;
 
-      const deep_search =
-        (typeof input === "object" && input && ("deep_search" in input || "deep" in input))
+      const deep_search = (typeof input === "object" && input && ("deep_search" in input || "deep" in input))
           ? !!(input.deep_search ?? input.deep)
-          : !!(state.isDeepSearchEnabled ?? state.deepSearch);
+          : !!state.isDeepSearchEnabled;
 
-      // Dynamic params (optional): prefer input.params; fall back to state.userParams
       let params = null;
-      if (typeof input === "object" && input && input.params && typeof input.params === "object") {
+      if (typeof input === "object" && input?.params && typeof input.params === "object") {
         params = input.params;
       } else if (state.userParams && typeof state.userParams === "object") {
         params = state.userParams;
       }
 
-      // Construct payload
       const payload = {
         type: "chat_message",
         content,
-        model,                 // must be string (e.g., "gpt-4o-mini")
-        conversation_id,       // nullable
-        deep_search            // boolean
+        model,
+        conversation_id,
+        deep_search
       };
       if (params) payload.params = params;
 
-      // Fast feedback in UI
       window.appState?.update?.({ isLoading: true });
 
-      // Send or queue
       if (this.isConnected && this.ws && this.ws.readyState === WebSocket.OPEN) {
         console.log("📤 Sending message via WebSocket:", payload);
         try {
@@ -177,9 +169,6 @@
       }
     }
 
-    /**
-     * Cancel current streaming (if backend supports it).
-     */
     cancel(conversationId) {
       const st = window.appState?.get?.() || {};
       const cid = conversationId ?? st.currentConversationId ?? null;
@@ -187,9 +176,6 @@
       window.appState?.update?.({ isLoading: false });
     }
 
-    /**
-     * Gracefully close the socket.
-     */
     disconnect() {
       this._clearReconnectTimer();
       if (this.ws) {
@@ -197,25 +183,18 @@
       }
     }
 
-    // ---------- Internals ----------
-
     _buildDefaultUrl() {
       const proto = window.location.protocol === "https:" ? "wss://" : "ws://";
       return `${proto}${window.location.host}/ws/chat/`;
     }
 
     connect() {
-      if (!this.wsUrl) {
-        this.wsUrl = this._buildDefaultUrl();
-      }
-      if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-        return; // already open/connecting
-      }
+      if (!this.wsUrl) this.wsUrl = this._buildDefaultUrl();
+      if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) return;
 
       console.log(`🔌 Attempting to connect to ${this.wsUrl}`);
       try {
         this.ws = new WebSocket(this.wsUrl);
-
         this.ws.onopen = this._handleOpen.bind(this);
         this.ws.onmessage = this._handleMessage.bind(this);
         this.ws.onclose = this._handleClose.bind(this);
@@ -232,8 +211,6 @@
       this.reconnectAttempts = 0;
       this._clearReconnectTimer();
       this._processMessageQueue();
-
-      // UI hooks
       window.appState?.emit?.('ws:open', { url: this.wsUrl });
     }
 
@@ -244,25 +221,45 @@
 
         switch (data.type) {
           case "connected":
-            // Optional 'hello' from server; no-op
             break;
 
+          // ✨====== تغییر نهایی برای حل مشکل عنوان چت ======✨
+          case "ConversationCreated": {
+            console.log(`✅ New conversation started (ID: ${data.conversation_id}, Title: "${data.title}"). Updating state and history.`);
+            
+            // 1. یک آبجکت برای گفتگوی جدید می‌سازیم
+            const newConversation = {
+              id: data.conversation_id,
+              title: data.title,
+            };
+
+            // 2. لیست تاریخچه فعلی را از state می‌گیریم
+            const currentState = window.appState.get();
+            // 3. گفتگوی جدید را به ابتدای لیست اضافه می‌کنیم
+            const updatedHistory = [newConversation, ...(currentState.chatHistory || [])];
+
+            // 4. هر دو مقدار را با هم در state آپدیت می‌کنیم تا سایدبار واکنش نشان دهد
+            window.appState.update({
+              currentConversationId: data.conversation_id,
+              chatHistory: updatedHistory,
+            });
+            break;
+          }
+          // ✨====== پایان تغییرات ======✨
+
           case "started":
-            // AI started generating a response
             if (!window.appState?.get?.().isLoading) {
               window.appState?.update?.({ isLoading: true });
             }
             break;
 
           case "token":
-            // Append streamed delta token
             if (data.delta != null) {
               window.appState?.emit?.("stream:token", data.delta);
             }
             break;
 
           case "done":
-            // Stream finished
             window.appState?.update?.({ isLoading: false });
             window.appState?.emit?.("stream:done", data.finish_reason || "stop");
             break;
@@ -271,27 +268,6 @@
             console.error("❌ Streaming error from server:", data.error);
             window.appState?.update?.({ isLoading: false });
             window.appState?.emit?.("stream:error", data.error || "Streaming error");
-            break;
-            
-          // <<< CHANGE: Added this new case to correctly handle new conversations.
-          case "ConversationCreated":
-            // The backend has created a new conversation and sent us its ID and initial title.
-            // We must update our central state so that subsequent messages are sent
-            // with the correct conversation_id.
-            console.log(`✅ New conversation started. ID: ${data.conversation_id}, Title: "${data.title}"`);
-            if (window.appState && typeof window.appState.update === 'function') {
-              window.appState.update({
-                currentConversationId: data.conversation_id
-              });
-            }
-            // Emit an event that other modules (like the sidebar) can listen to,
-            // to add the new conversation to the UI without a full refresh.
-            if (window.EventBus && typeof window.EventBus.emit === 'function') {
-              window.EventBus.emit('chat:newConversation', { 
-                id: data.conversation_id, 
-                title: data.title 
-              });
-            }
             break;
 
           case "ping":
@@ -311,16 +287,13 @@
       console.warn(`🔌 WebSocket connection closed. Code: ${event.code}, Reason: ${event.reason}`);
       this.isConnected = false;
 
-      // If we were loading, mark as error
       if (window.appState?.get?.().isLoading) {
         window.appState.update({ isLoading: false });
         window.appState.emit("stream:error", "Connection lost during streaming.");
       }
 
-      // UI hooks
       window.appState?.emit?.('ws:close', { code: event.code, reason: event.reason });
 
-      // Reconnect unless it was a clean/intentional close (1000)
       if (event.code !== 1000) {
         this._scheduleReconnect();
       }
@@ -328,7 +301,6 @@
 
     _handleError(event) {
       console.error("❌ WebSocket error:", event);
-      // onclose handler will schedule reconnect if needed
     }
 
     _scheduleReconnect() {
@@ -338,16 +310,12 @@
         return;
       }
       this.reconnectAttempts += 1;
-
       const delay = Math.min(
         this.reconnectDelayBase * Math.pow(2, this.reconnectAttempts - 1),
         this.maxReconnectDelay
       );
       console.log(`⏳ Scheduling reconnect attempt #${this.reconnectAttempts} in ${delay}ms`);
-
-      // UI hook
       window.appState?.emit?.('ws:reconnecting', { attempt: this.reconnectAttempts, delay });
-
       this._clearReconnectTimer();
       this.reconnectTimer = setTimeout(() => {
         this.connect();
@@ -369,7 +337,6 @@
           this.ws.send(JSON.stringify(msg));
         } catch (err) {
           console.error("❌ Failed to send queued message:", err, msg);
-          // Put it back and break; retry on next open
           this.messageQueue.unshift(msg);
           break;
         }
