@@ -99,7 +99,12 @@ LOGOUT_REDIRECT_URL = "/"
 
 # --- فایل‌های استاتیک ---
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'apps/frontend/static'),
+]
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # --- Channels / Redis / Celery (پیش‌فرض‌های امن برای توسعه) ---
 # این بخش‌ها ساختار کلی را تعریف می‌کنند. مقادیر واقعی (URL ها)
