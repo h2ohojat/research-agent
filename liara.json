@@ -1,18 +1,12 @@
 {
-  "platform": "django",
-  "app": "pyamooz_ai",
-  "gunicorn": {
-    "args": [
-      "--worker-class",
-      "uvicorn.workers.UvicornWorker",
-      "--bind",
-      "0.0.0.0:$PORT",
-      "pyamooz_ai.asgi:application"
-    ]
-  },
-  "build": {
-    "args": {
-      "DISABLE_COLLECTSTATIC": "0"
+  "apps": [
+    {
+      "port": 8000,
+      "app": "h2ohojat",
+      "platform": "django",
+      "django": {
+        "command": "gunicorn --bind 0.0.0.0:$PORT pyamooz_ai.wsgi:application"
+      }
     }
-  }
+  ]
 }
