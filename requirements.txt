@@ -1,13 +1,30 @@
-django>=5.0,<6.0
-djangorestframework
-channels>=4.0
-channels-redis
-celery>=5.4
-redis>=5.0
-python-dotenv
-python-json-logger
-psycopg[binary]
-requests>=2.32
-django-allauth>=65
-PyJWT[crypto]>=2.9
-whitenoise[brotli]
+# Core
+Django==5.2.6                 # LTS سری 5 (قفل‌شده برای ثبات)
+djangorestframework>=3.14,<4  # DRF که با Django 5 سازگار است
+
+# Realtime / WebSockets
+channels==4.3.0               # Channels 4.x
+daphne>=4.0,<5.0              # ASGI server required by Channels (daphne 4+)
+
+# Channel layer (Redis)
+channels-redis>=4.0,<5.0
+redis>=5.3,<7.0               # redis-py client (سازگار با Redis 6/7)
+
+# Background tasks
+celery>=5.5,<6.0
+# result backend usually uses redis or database; set via CELERY_* env vars
+
+# Database
+psycopg[binary]>=3.1,<4.0     # Psycopg 3 (binary wheels)
+
+# Config / utils / logging
+python-dotenv>=1.0,<2.0
+python-json-logger>=2.0,<3.0
+requests>=2.32,<3.0
+PyJWT[crypto]>=2.9,<3.0
+
+# Static files
+whitenoise[brotli]>=6.0,<7.0
+
+# Auth / social
+django-allauth>=65.0,<66.0

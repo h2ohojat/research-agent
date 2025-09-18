@@ -1,0 +1,5 @@
+{
+  "django": {
+    "settingsFile": "./pyamooz_ai/settings/prod.py"
+  }
+}
