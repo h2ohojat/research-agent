@@ -1,5 +1,18 @@
 {
-  "django": {
-    "settingsFile": "./pyamooz_ai/settings/prod.py"
+  "platform": "django",
+  "app": "pyamooz_ai",
+  "gunicorn": {
+    "args": [
+      "--worker-class",
+      "uvicorn.workers.UvicornWorker",
+      "--bind",
+      "0.0.0.0:$PORT",
+      "pyamooz_ai.asgi:application"
+    ]
+  },
+  "build": {
+    "args": {
+      "DISABLE_COLLECTSTATIC": "0"
+    }
   }
 }
