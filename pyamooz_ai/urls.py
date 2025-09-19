@@ -39,7 +39,7 @@ def readyz(_request):
 
     checks["database"] = db_ok
 
-    overall_ok = db_ok  # اگر بعداً Redis/Queue هم اضافه شد، اینجا لحاظ کن
+    overall_ok = db_ok  
     status_code = 200 if overall_ok else 503
 
     return JsonResponse(
