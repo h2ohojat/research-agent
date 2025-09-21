@@ -1,3 +1,4 @@
+import logging  # <<<<<<<<<<<<<<< [جدید] ایمپورت لاگر
 from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -17,6 +18,7 @@ from .services.model_manager import model_manager
 from .services.avalai_service import avalai_service
 
 User = get_user_model()
+logger = logging.getLogger(__name__) # <<<<<<<<<<<<<<< [جدید] تعریف لاگر
 
 class ModelListView(generics.ListAPIView):
     """لیست مدل‌های قابل دسترس برای کاربر"""
@@ -24,8 +26,33 @@ class ModelListView(generics.ListAPIView):
     permission_classes = [AllowAny]
     
     def get_queryset(self):
+        """
+        این متد برای دریافت لیست مدل‌ها بهینه شده است.
+        1. ابتدا مدل‌های موجود را با بهینه‌سازی کوئری (select_related) دریافت می‌کند.
+        2. اگر هیچ مدلی یافت نشد (Lazy Refresh)، یک همگام‌سازی فوری و همزمان (synchronous) انجام می‌دهد.
+        3. در نهایت، لیست به‌روز شده را برمی‌گرداند.
+        """
         user = self.request.user if self.request.user.is_authenticated else None
-        return model_manager.get_available_models_for_user(user)
+        
+        # بهینه‌سازی برای جلوگیری از N+1 Query هنگام سریالایز کردن provider
+        queryset = model_manager.get_available_models_for_user(user).select_related('provider')
+        
+        # <<<<<<<<<<<<<<< [منطق جدید] Lazy Refresh در اینجا شروع می‌شود >>>>>>>>>>>>>>>
+        if not queryset.exists():
+            logger.warning("Model list is empty. Triggering an immediate lazy refresh from AvalAI...")
+            try:
+                # یک همگام‌سازی فوری انجام می‌دهیم تا این درخواست کاربر بی‌پاسخ نماند
+                model_manager.sync_models_from_avalai(force_refresh=True)
+                
+                # پس از همگام‌سازی، کوئری را مجدداً اجرا می‌کنیم
+                queryset = model_manager.get_available_models_for_user(user).select_related('provider')
+                logger.info("✅ Lazy refresh completed. Models are now populated.")
+            except Exception as e:
+                # اگر همگام‌سازی با خطا مواجه شد، لاگ می‌کنیم و یک کوئری ست خالی برمی‌گردانیم تا برنامه کرش نکند
+                logger.error(f"❌ Lazy refresh failed during API call: {str(e)}")
+        # <<<<<<<<<<<<<<< [منطق جدید] پایان Lazy Refresh >>>>>>>>>>>>>>>
+        
+        return queryset
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -65,7 +92,8 @@ class ModelDetailView(generics.RetrieveAPIView):
     
     def get_queryset(self):
         user = self.request.user if self.request.user.is_authenticated else None
-        return model_manager.get_available_models_for_user(user)
+        # <<<<<<<<<<<<<<< [بهینه‌سازی] افزودن select_related برای جزئیات مدل >>>>>>>>>>>>>>>
+        return model_manager.get_available_models_for_user(user).select_related('provider')
     
     def retrieve(self, request, *args, **kwargs):
         try:
@@ -83,7 +111,7 @@ class ModelDetailView(generics.RetrieveAPIView):
                 'model': serializer.data,
                 'user_has_access': has_access
             })
-        except AIModel.DoesNotExist:
+        except: # تغییر برای پوشش موارد بیشتر مانند نبود مدل پس از Lazy Refresh
             return Response({
                 'success': False,
                 'error': 'مدل یافت نشد یا به آن دسترسی ندارید.'
@@ -152,8 +180,8 @@ def get_selected_model(request):
     # اگر هنوز مدلی نیست، اولین مدل رایگان را بده
     if not selected_model_id:
         free_models = model_manager.get_available_models_for_user(None)
-        if free_models:
-            selected_model_id = free_models[0].model_id
+        if free_models.exists(): # <<<<<<<<<<<<<<< [بهینه‌سازی] استفاده از exists
+            selected_model_id = free_models.first().model_id
             request.session['selected_model'] = selected_model_id
     
     if selected_model_id:
@@ -180,9 +208,10 @@ def get_selected_model(request):
         except AIModel.DoesNotExist:
             request.session.pop('selected_model', None)
     
+    # اگر هیچ مدلی پیدا نشد، یک پاسخ مناسب برگردان
     return Response({
         'success': False,
-        'error': 'هیچ مدلی انتخاب نشده است.'
+        'error': 'هیچ مدل در دسترسی یافت نشد.'
     }, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET'])
@@ -196,13 +225,14 @@ def model_stats(request):
         return Response(cached_stats)
     
     # محاسبه آمار
-    total_models = AIModel.objects.filter(is_active=True).count()
-    free_models = AIModel.objects.filter(is_active=True, tier='free').count()
+    all_active_models = AIModel.objects.filter(is_active=True)
+    total_models = all_active_models.count()
+    free_models = all_active_models.filter(tier='free').count()
     premium_models = total_models - free_models
     providers_count = ModelProvider.objects.filter(is_active=True).count()
     
     user = request.user if request.user.is_authenticated else None
-    user_accessible_models = len(model_manager.get_available_models_for_user(user))
+    user_accessible_models = model_manager.get_available_models_for_user(user).count() # <<<<<<<<<<<<< [بهینه‌سازی]
     
     stats_data = {
         'success': True,

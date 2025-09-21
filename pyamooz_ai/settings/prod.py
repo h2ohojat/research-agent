@@ -13,8 +13,18 @@ DEBUG = False
 SECRET_KEY = os.environ['SECRET_KEY']
 
 # دامنه‌هایی که به برنامه شما سرویس می‌دهند. این متغیر باید در پنل لیارا تنظیم شود.
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+# ...
+ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', '')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
 
+# ======== DEBUGGING ALLOWED_HOSTS ========
+print("--- LIARA DEBUG ---")
+print(f"RAW ALLOWED_HOSTS string from env: '{ALLOWED_HOSTS_STR}'")
+print(f"FINAL ALLOWED_HOSTS list for Django: {ALLOWED_HOSTS}")
+print("-------------------------------------")
+# =========================================
+
+# ... بقیه تنظیمات ...
 # -------- امنیت --------
 # تنظیمات امنیتی قوی برای ارتباطات تحت HTTPS
 
@@ -55,6 +65,7 @@ MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")
 # -------- Celery / Channels / Redis (اتصال به Redis لیارا) --------
 # آدرس سرور Redis از متغیر محیطی REDIS_URL خوانده می‌شود.
 REDIS_URL = os.environ['REDIS_URL']
+print(f"--- LIARA DEBUG --- Loading prod settings. REDIS_URL is: {REDIS_URL}")
 
 # پیکربندی Celery برای استفاده از Redis در پروداکشن
 CELERY_BROKER_URL = REDIS_URL

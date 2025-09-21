@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Optional, TYPE_CHECKING
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.db.models import Sum
+from django.db.models import Sum, QuerySet
 from datetime import timedelta
 
 from ..models import AIModel, ModelProvider, UserModelPermission, ModelUsageLog
@@ -198,43 +198,49 @@ class ModelManager:
         
         return display_name.capitalize()
     
-    def get_available_models_for_user(self, user: Optional['AbstractUser'] = None) -> List[AIModel]:
+    # <<<<<<<<<<<<<<< [تغییر کلیدی] این متد حالا همیشه QuerySet برمی‌گرداند >>>>>>>>>>>>>>>
+    def get_available_models_for_user(self, user: Optional['AbstractUser'] = None, base_queryset: Optional[QuerySet] = None) -> QuerySet:
         """
         دریافت مدل‌های قابل دسترس برای کاربر
         
         Args:
             user: کاربر (None برای مهمان)
+            base_queryset: QuerySet پایه (اختیاری) - برای بهینه‌سازی
             
         Returns:
-            List[AIModel]: لیست مدل‌های قابل دسترس
+            QuerySet: QuerySet مدل‌های قابل دسترس
         """
+        # اگر base_queryset داده شده، از آن استفاده می‌کنیم، وگرنه یک QuerySet پایه می‌سازیم
+        if base_queryset is not None:
+            base_qs = base_queryset.filter(is_active=True)
+        else:
+            base_qs = AIModel.objects.filter(is_active=True)
+        
         if user and user.is_authenticated:
             # کاربر لاگین شده
             if user.is_superuser:
                 # ادمین: همه مدل‌ها
-                return list(AIModel.objects.filter(is_active=True).order_by('provider__name', 'display_name'))
+                return base_qs.order_by('provider__name', 'display_name')
             else:
                 # کاربر عادی: مدل‌های مجاز + رایگان
-                user_models = AIModel.objects.filter(
-                    is_active=True,
+                user_models = base_qs.filter(
                     usermodelpermission__user=user,
                     usermodelpermission__is_active=True
                 ).distinct()
                 
-                free_models = AIModel.objects.filter(
-                    is_active=True,
+                free_models = base_qs.filter(
                     tier=AIModel.ModelTier.FREE
                 )
                 
-                return list((user_models | free_models).distinct().order_by('provider__name', 'display_name'))
+                return (user_models | free_models).distinct().order_by('provider__name', 'display_name')
         else:
             # کاربر مهمان: فقط مدل‌های رایگان
-            return list(AIModel.objects.filter(
-                is_active=True,
+            return base_qs.filter(
                 tier=AIModel.ModelTier.FREE
-            ).order_by('provider__name', 'display_name'))
+            ).order_by('provider__name', 'display_name')
     
-    def get_models_by_tier(self, tier: str) -> List[AIModel]:
+    # <<<<<<<<<<<<<<< [تغییر کلیدی] این متد هم حالا QuerySet برمی‌گرداند >>>>>>>>>>>>>>>
+    def get_models_by_tier(self, tier: str) -> QuerySet:
         """
         دریافت مدل‌ها بر اساس tier
         
@@ -242,12 +248,12 @@ class ModelManager:
             tier: نوع tier (free, basic, premium, enterprise)
             
         Returns:
-            List[AIModel]: لیست مدل‌های tier مشخص شده
+            QuerySet: QuerySet مدل‌های tier مشخص شده
         """
-        return list(AIModel.objects.filter(
+        return AIModel.objects.filter(
             is_active=True,
             tier=tier
-        ).order_by('provider__name', 'display_name'))
+        ).order_by('provider__name', 'display_name')
     
     def get_model_by_id(self, model_id: str) -> Optional[AIModel]:
         """

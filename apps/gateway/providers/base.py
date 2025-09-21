@@ -1,3 +1,5 @@
+# apps/gateway/providers/base.py
+
 """
 Base provider with dynamic parameter handling
 Enhanced version compatible with existing architecture
@@ -15,7 +17,7 @@ class BaseProvider:
     """
     
     name: str = "base"
-    region: str = "ir"  # در آینده برای روتینگ صف کاربرد دارد
+    region: str = "ir"
     
     def __init__(self, api_key: Optional[str] = None, **kwargs):
         """
@@ -34,14 +36,16 @@ class BaseProvider:
         logger.info(f"Initialized {self.name} provider with dynamic parameter handling")
         logger.debug(f"Provider config: {self.config}")
     
-    def prepare_request_data(self, messages: List[Dict[str, str]], model: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+    # vvvv ----- تغییر اینجاست ----- vvvv
+    def prepare_request_data(self, messages: List[Dict[str, str]], model: str, **params: Any) -> Dict[str, Any]:
+    # ^^^^ ------------------------- ^^^^
         """
         Prepare request data using dynamic parameter handling
         
         Args:
             messages: List of conversation messages
             model: Model identifier
-            params: Additional parameters
+            **params: Additional parameters (stream, temperature, etc.)
             
         Returns:
             Dict with filtered and mapped parameters for this provider
@@ -260,7 +264,9 @@ class BaseProvider:
             params['stream'] = stream
             
             try:
-                request_data = self.prepare_request_data(messages, model, params)
+                # vvvv ----- تغییر اینجاست ----- vvvv
+                request_data = self.prepare_request_data(messages, model, **params)
+                # ^^^^ ------------------------- ^^^^
             except Exception as e:
                 yield self.handle_api_error(e, "parameter_preparation")
                 return

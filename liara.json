@@ -1,7 +1,5 @@
 {
-  "build": {
-    "commands": [
-      "python manage.py collectstatic --noinput"
-    ]
-  }
+  "platform": "docker",
+  "port": 8000,
+  "app": "dockerchatai"
 }

@@ -38,7 +38,7 @@ class JsonSendMixin:
 # ======================================================================
 # Consumer های تستی (بدون تغییر)
 # ======================================================================
-# ... (کلاس‌های EchoConsumer و MessageStreamConsumer بدون تغییر باقی می‌مانند) ...
+
 class EchoConsumer(JsonSendMixin, AsyncWebsocketConsumer):
     async def connect(self):
         await self.accept()
@@ -81,7 +81,7 @@ class MessageStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
             await self._send_error(f"Unexpected error: {e}", error_type="unexpected")
 
 # ======================================================================
-# ChatStreamConsumer (نسخه نهایی و ۱۰۰٪ صحیح)
+# ChatStreamConsumer (نسخه نهایی با پشتیبانی از async generator)
 # ======================================================================
 
 def _has_field(model_cls, name: str) -> bool:
@@ -101,12 +101,12 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
         self.current_stream_task: Optional[asyncio.Task] = None
         self.max_stream_seconds = getattr(django_settings, "REALTIME_MAX_SECONDS", 120)
         self.message_counter = 0
-        self.user = None  # ✨ تغییر ۱: تعریف متغیر برای نگهداری کاربر
+        self.user = None
         logger.info(f"[ChatStream {self.conn_id}] Consumer initialized with timeout={self.max_stream_seconds}s")
 
     # ---------- ORM helpers ----------
     @sync_to_async
-    def _create_conversation(self, user, model: Optional[str], initial_content: str = "") -> Optional[Conversation]: # ✨ تغییر ۲: افزودن 'user' به عنوان آرگومان
+    def _create_conversation(self, user, model: Optional[str], initial_content: str = "") -> Optional[Conversation]:
         """ایجاد گفتگو جدید به صورت اتمیک با عنوان سریع و مالک صحیح"""
         start_time = time.monotonic()
         owner = user if getattr(user, "is_authenticated", False) else None
@@ -130,7 +130,6 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
             logger.warning(f"[ChatStream {self.conn_id}] Could not create Conversation in {elapsed:.3f}s. Error: {e}")
             return None
 
-    # ... (بقیه متدهای ORM helper بدون تغییر باقی می‌مانند) ...
     @sync_to_async
     def _get_conversation(self, conv_id: int) -> Conversation:
         start_time = time.monotonic()
@@ -192,7 +191,7 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
             
     # ---------- Lifecycle ----------
     async def connect(self):
-        self.user = self.scope.get("user")  # ✨ تغییر ۱: ذخیره کاربر در متغیر کلاس هنگام اتصال
+        self.user = self.scope.get("user")
         logger.info(f"DEBUG_AUTH: User object from scope: {repr(self.user)}")
         logger.info(f"DEBUG_AUTH: Is user authenticated? {getattr(self.user, 'is_authenticated', False)}")
         await self.accept()
@@ -204,7 +203,6 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
         else:
             logger.info(f"[ChatStream {self.conn_id}] Anonymous user connected. Client: {self.scope.get('client')}")
 
-    # ... (متدهای disconnect, receive, _runner بدون تغییر باقی می‌مانند) ...
     async def disconnect(self, code):
         logger.info(f"[ChatStream {self.conn_id}] Disconnect called (code={code}). Processed {self.message_counter} messages.")
         runner_status = "done" if self.runner_task and self.runner_task.done() else "running"
@@ -275,7 +273,6 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
             
     # ---------- Handler ----------
     async def _handle_chat_message(self, data: Dict[str, Any]):
-        # ... (بخش اولیه هندلر بدون تغییر باقی می‌ماند) ...
         req_id = data.get('req_id', 'no-id')
         handler_start = time.monotonic()
         content = (data.get("content") or "").strip()
@@ -306,7 +303,6 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
         else:
             logger.info(f"[ChatStream {self.conn_id}] [{req_id}] Creating new conversation...")
             
-            # ✨ تغییر ۳: پاس دادن 'self.user' به تابع ساخت گفتگو
             conv = await self._create_conversation(user=self.user, model=model, initial_content=content)
             
             if conv is None:
@@ -325,7 +321,6 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
             })
             logger.info(f"[ChatStream {self.conn_id}] [{req_id}] New conversation id={conv.id} title='{conv.title}' and first message saved atomically. Notified client.")
 
-        # ... (بقیه هندلر و متد _stream_and_save_response بدون تغییر باقی می‌ماند) ...
         messages = [{"role": "user", "content": content}]
         try:
             await asyncio.wait_for(
@@ -337,6 +332,7 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
         except asyncio.CancelledError:
             await self._send_error("Request was cancelled.", "cancelled")
             
+    # ✨ تغییر اصلی: متد _stream_and_save_response برای async generator
     async def _stream_and_save_response(self, provider, messages, model: str, params: Dict[str, Any], conv: Optional[Conversation], provider_name: Optional[str], req_id: str):
         buffer_parts: list[str] = []
         await self.send_json({"type": "started"})
@@ -346,36 +342,40 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
         try:
             logger.info(f"[ChatStream {self.conn_id}] [{req_id}] Initializing provider stream...")
             gen_start = time.monotonic()
-            gen = await asyncio.to_thread(provider.generate, messages=messages, model=model, params=params, stream=True)
+            
+            # ✨ تغییر ۱: حذف asyncio.to_thread - حالا provider.generate مستقیماً async است
+            gen = provider.generate(messages=messages, model=model, params=params, stream=True)
+            
             gen_init_time = time.monotonic() - gen_start
             logger.info(f"[ChatStream {self.conn_id}] [{req_id}] Provider stream initialized in {gen_init_time:.3f}s")
             first_token_time = None
-            while True:
-                try:
-                    event = await asyncio.to_thread(next, gen)
-                    if first_token_time is None:
-                        first_token_time = time.monotonic()
-                        ttft = first_token_time - stream_start
-                        logger.info(f"[ChatStream {self.conn_id}] [{req_id}] First token received in {ttft:.3f}s")
-                except StopIteration: break
-                except RuntimeError as e:
-                    if "StopIteration interacts badly with generators" in str(e): break
-                    raise
+            
+            # ✨ تغییر ۲: استفاده از async for به جای while True + next
+            async for event in gen:
+                if first_token_time is None:
+                    first_token_time = time.monotonic()
+                    ttft = first_token_time - stream_start
+                    logger.info(f"[ChatStream {self.conn_id}] [{req_id}] First token received in {ttft:.3f}s")
+                
                 if not isinstance(event, dict) or "type" not in event:
                     logger.error(f"[ChatStream {self.conn_id}] [{req_id}] Malformed event from provider: {event}")
                     await self._send_error("Malformed event from provider.", error_type="event_format")
                     return
+                
                 if event["type"] == "token":
                     delta = event.get("delta") or ""
                     buffer_parts.append(str(delta))
                     event["delta"] = str(delta)
                     token_count += 1
+                
                 await self.send_json(event)
+            
             stream_end = time.monotonic()
             stream_duration = stream_end - stream_start
             final_text = "".join(buffer_parts)
             latency_ms = int(stream_duration * 1000)
             logger.info(f"[ChatStream {self.conn_id}] [{req_id}] Stream finished: {token_count} tokens, {len(final_text)} chars in {stream_duration:.3f}s")
+            
             if conv is not None:
                 save_start = time.monotonic()
                 try:
@@ -393,13 +393,20 @@ class ChatStreamConsumer(JsonSendMixin, AsyncWebsocketConsumer):
                 except Exception as e:
                     save_time = time.monotonic() - save_start
                     logger.warning(f"[ChatStream {self.conn_id}] [{req_id}] Assistant message save failed in {save_time:.3f}s: {e}")
+            
             await self.send_json({"type": "done", "finish_reason": "completed"})
             logger.info(f"[ChatStream {self.conn_id}] [{req_id}] Response completed and sent to client.")
+            
         finally:
             close_start = time.monotonic()
             try:
-                if gen and hasattr(gen, "close"):
-                    await asyncio.to_thread(gen.close)
+                # ✨ تغییر ۳: مدیریت بستن async generator
+                if gen and hasattr(gen, "aclose"):
+                    await gen.aclose()
+                    close_time = time.monotonic() - close_start
+                    logger.debug(f"[ChatStream {self.conn_id}] [{req_id}] Async generator closed in {close_time:.3f}s")
+                elif gen and hasattr(gen, "close"):
+                    gen.close()
                     close_time = time.monotonic() - close_start
                     logger.debug(f"[ChatStream {self.conn_id}] [{req_id}] Generator closed in {close_time:.3f}s")
             except Exception as e:

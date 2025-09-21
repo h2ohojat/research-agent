@@ -89,19 +89,38 @@
     }
   }
 
-  function handleStreamToken(token) {
-    if (!currentAssistantBubbleElement) return;
-    currentMessageTextBuffer += token;
-    if (window.PyamoozRenderers) {
-      window.PyamoozRenderers.renderStreamingPreview(currentAssistantBubbleElement, currentMessageTextBuffer);
-    } else {
-      currentAssistantBubbleElement.textContent = currentMessageTextBuffer;
-    }
-    if (window.bidiUtils) {
-      window.bidiUtils.applyBidiDirection(currentAssistantBubbleElement, currentMessageTextBuffer);
-    }
-    scheduleScrollToBottom();
+function handleStreamToken(token) {
+  // اگر حباب دستیار وجود ندارد، یکی بساز
+  if (!currentAssistantBubbleElement) {
+    // ایجاد عنصر پیام دستیار
+    currentAssistantMessageElement = createMessageElement('assistant');
+    currentAssistantBubbleElement = currentAssistantMessageElement.querySelector('.bubble');
+    // قرار دادن نشانگر چشمک‌زن
+    currentAssistantBubbleElement.innerHTML = '<span class="streaming-cursor">▋</span>';
+    // اضافه کردن به کانتینر چت
+    window.elements.chatMessagesContainer.appendChild(currentAssistantMessageElement);
+    scrollMessageIntoView(currentAssistantMessageElement);
+    currentMessageTextBuffer = '';
   }
+
+  // افزودن توکن دریافتی به بافر
+  currentMessageTextBuffer += token;
+
+  // رندر زنده متن
+  if (window.PyamoozRenderers) {
+    window.PyamoozRenderers.renderStreamingPreview(currentAssistantBubbleElement, currentMessageTextBuffer);
+  } else {
+    currentAssistantBubbleElement.textContent = currentMessageTextBuffer;
+  }
+
+  // اعمال جهت متن (RTL/LTR) در صورت نیاز
+  if (window.bidiUtils) {
+    window.bidiUtils.applyBidiDirection(currentAssistantBubbleElement, currentMessageTextBuffer);
+  }
+
+  // اسکرول به پایین در صورت فعال بودن autoScroll
+  scheduleScrollToBottom();
+}
 
   async function handleStreamDone() {
     if (!currentAssistantBubbleElement) return;
