@@ -3,8 +3,6 @@
    اثر فقط داخل .chat-panel یا #chatView
    ========================================================= */
 
-/* --------- Root scopes: هر دو مسیر را پشتیبانی کن --------- */
-.chat-panel, #chatView {}
 
 /* ====== LAYOUT: پیام‌ها اسکرول، کامپوزر چسبیده پایین ====== */
 .chat-panel, #chatView {
@@ -394,3 +392,42 @@
 /* اگر کامپوزر خیلی شلوغ است و می‌خواهی دکمه کمی بالاتر/پایین‌تر باشد، یکی از این‌ها را فعال کن: */
 /* .chat-panel .composer-holder #jumpToBottom { top: 45%; } */
 /* .chat-panel .composer-holder #jumpToBottom { top: 55%; } */
+/* =========================================================
+   🔧 FIX: Composer z-index برای موبایل
+   ========================================================= */
+
+/* در موبایل، کامپوزر باید زیر سایدبار باشد */
+@media (max-width: 991.98px) {
+  .chat-panel .composer,
+  #chatView .composer {
+    z-index: 10 !important; /* کمتر از سایدبار (z-index: 20) */
+  }
+  
+  /* دکمه jump-to-bottom هم باید زیر سایدبار باشد */
+  .chat-panel .composer-holder #jumpToBottom,
+  #chatView .composer-holder #jumpToBottom {
+    z-index: 15 !important; /* کمتر از سایدبار اما بالاتر از کامپوزر */
+  }
+  
+  /* اطمینان از اینکه کامپوزر در موبایل پشت backdrop هم باشد */
+  .chat-panel .composer,
+  #chatView .composer {
+    position: relative; /* به جای sticky در موبایل */
+  }
+  
+  /* وقتی سایدبار باز است، کامپوزر کمی محو شود (اختیاری) */
+  body.sidebar-open-mobile .chat-panel .composer,
+  body.sidebar-open-mobile #chatView .composer {
+    opacity: 0.3;
+    pointer-events: none; /* غیرفعال کردن کلیک روی کامپوزر */
+    transition: opacity 0.3s ease;
+  }
+}
+
+/* برای دسکتاپ، z-index عادی را حفظ کن */
+@media (min-width: 992px) {
+  .chat-panel .composer,
+  #chatView .composer {
+    z-index: 20; /* در دسکتاپ مشکلی نیست */
+  }
+}

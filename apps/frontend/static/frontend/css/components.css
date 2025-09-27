@@ -747,3 +747,36 @@ code {
   overflow: hidden;
   text-overflow: ellipsis; /* Adds '...' if the title is too long */
 }
+/* Custom styles for linkable tiles to remove underline */
+a.card-tile {
+  text-decoration: none; /* حذف زیرخط در حالت عادی */
+}
+
+/* Optional: Add underline on hover for better user feedback */
+a.card-tile:hover {
+  text-decoration: none; /* ما اینجا هم زیرخط نمی‌خواهیم، چون کل کارت تغییر می‌کند */
+  /* استایل هاور شما ممکن است در جای دیگری تعریف شده باشد، مثلاً تغییر پس‌زمینه */
+}
+/* Hide load more buttons by default, JS will show them if needed */
+.btn.load-more {
+  display: none;
+}
+/*
+ * Auto-growing textarea styles (v2 - CSS Centric)
+ */
+.auto-growing-textarea {
+  /* تنظیمات پایه */
+  resize: none;
+  box-sizing: border-box;
+  overflow-y: hidden; /* در حالت عادی اسکرول مخفی است */
+  
+  /* ✨ بهبود ۱: انیمیشن نرم برای تغییر ارتفاع */
+  transition: height 0.15s ease-out;
+
+  /* ✨ بهبود ۲: تعریف حداقل و حداکثر ارتفاع بر اساس خطوط */
+  /* ارتفاع یک خط برای شروع */
+  min-height: calc(1.5em * 1.5); 
+  
+  /* حداکثر ارتفاع برابر با ۵ خط. بعد از این، اسکرول ظاهر می‌شود. */
+  max-height: calc(1.5em * 5); 
+}

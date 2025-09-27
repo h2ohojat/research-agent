@@ -137,9 +137,59 @@
     previewEl.innerHTML = `<code class="streaming-plain">${escapeHTML(buffer)}</code>`;
   }
 
+  /**
+   * ✨✨✨ START: NEW FUNCTION FOR PROMPT TILES ✨✨✨
+   * Creates the HTML for a single prompt card.
+   * @param {object} prompt - The prompt object from prompts-data.js.
+   * @returns {string} The HTML string for the card.
+   */
+  function renderPromptCard(prompt) {
+    // Using data-* attribute is a clean way to store the prompt text.
+    return `
+      <button class="card-tile" data-prompt="${escapeHTML(prompt.prompt)}" role="listitem">
+        <div class="tile-left">
+          <div class="tool-icon">${prompt.icon}</div>
+          <div class="vstack">
+            <strong>${escapeHTML(prompt.title)}</strong>
+            <span style="color: var(--muted); font-size: 13px;">${escapeHTML(prompt.description)}</span>
+          </div>
+        </div>
+        <div class="chev">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </div>
+      </button>
+    `;
+  }
+  // ✨✨✨ END: NEW FUNCTION FOR PROMPT TILES ✨✨✨
+  // ✨✨✨ START: NEW FUNCTION FOR LINK TILES ✨✨✨
+  /**
+   * Creates the HTML for a single linkable card (e.g., for courses).
+   * @param {object} card - The card object from prompts-data.js.
+   * @returns {string} The HTML string for the card.
+   */
+  function renderLinkCard(card) {
+    // This creates an <a> tag instead of a <button>
+    return `
+      <a href="${escapeHTML(card.url)}" class="card-tile" target="_blank" rel="noopener noreferrer" role="listitem">
+        <div class="tile-left">
+          <div class="tool-icon">${card.icon}</div>
+          <div class="vstack">
+            <strong>${escapeHTML(card.title)}</strong>
+            <span style="color: var(--muted); font-size: 13px;">${escapeHTML(card.description)}</span>
+          </div>
+        </div>
+        <div class="chev">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </div>
+      </a>
+    `;
+  }
+  // ✨✨✨ END: NEW FUNCTION FOR LINK TILES ✨✨✨
   // API عمومی
   window.PyamoozRenderers = {
     renderRich,
-    renderStreamingPreview
+    renderStreamingPreview,
+    renderLinkCard,
+    renderPromptCard // <-- تابع جدید به API اضافه شد
   };
 })();
